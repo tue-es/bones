@@ -1,0 +1,20 @@
+#!/usr/bin/env ruby
+
+# Set the path for the libraries and the installation directory
+BONES_DIR = File.dirname(__FILE__) + '/../'
+lib_dir = File.join(BONES_DIR,'lib')
+$LOAD_PATH.unshift lib_dir unless $LOAD_PATH.include?(lib_dir)
+
+# Enable verbose output
+VERBOSE = true
+
+# Load the libraries
+require 'castaddon.rb'
+require 'bones.rb'
+
+# Run the main function
+bones = Bones::Engine.new
+bones.process
+bones.write_output
+
+

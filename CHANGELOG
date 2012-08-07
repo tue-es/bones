@@ -1,0 +1,117 @@
+###################
+### v1.1        ###
+###################
+
+General:
+- Added support for a compiler optimisation pass: array substitution with a local register copy in the case of chunk to element species.
+- Added support for a compiler optimisation pass: thread-merging, potentially improving re-use through locality at the cost of parallelism.
+- Updated and added examples.
+- Tuned the skeletons.
+
+Skeletons performance/readability/usability tuning:
+- Added a special GPU-CUDA 'chunk(1,N)' skeleton with pre-shuffling (e.g. atax, bicg, mvt, syrk). Added support for a corresponding transformation in Bones.
+- Added a special GPU-CUDA 2x'chunk(1,N)' skeleton with pre-shuffling if there are two chunk inputs (e.g. gesummv,syr2k).
+- Updated the various OpenCL skeletons to create only once the 'context', 'command queue' and 'program'. This saves significant time for programs executing a single kernel multiple times or multiple kernels subsequently.
+- Tune GPU-CUDA skeletons to prefer L1 cache above scratchpad memory.
+
+Examples:
+- Updated several benchmarks with additional species.
+- Added the 'saxpy' benchmark.
+- Added 'example12' to demonstrate the use of species in a separate function.
+
+Bug fixes:
+- Removed the generation of global code in case no species are detected.
+
+Miscellaneous:
+- Renamed the original main function and created a new 'main' in 'common/globals.c' with initialisation and clean-up. The use of '#pragma species initialize' is now deprecated, but a main function is required in the original code.
+- Added the identification of a species' function, making variable definition detection local.
+- Improved the compiler run-time for algorithms for which a skeleton is unavailable.
+- Added a command-line option to be able to generate code for a single species only (-only_alg_number).
+- Added a command-line option to set a fixed thread-merge factor (-merge_factor).
+- Added a gemspec file.
+- Updated the documentation and readme.
+
+###################
+### v1.0        ###
+###################
+
+General:
+- Added a benchmark set to the examples directory based on the PolyBench/C benchmark set.
+- Performed major code refactoring, improving maintainability and performance of Bones.
+- Updated all examples to work with the upcoming 'automatic species extraction tool' (ASET).
+
+Skeletons performance/readability/usability tuning:
+- Updated the 'GPU-CUDA' reduction skeleton to support initial values, loops not starting at zero or not a power of 2, and more (see the new 'shared/example5.c').
+- Improved the way skeletons are matched with species. Introduced a 'default' skeleton and modified others to accomodate these changes.
+
+Improved code/species support:
+- Added atomic support for OpenCL based targets
+- Added support for loop iterator variables inside the 'algorithmic species' with selective memory copy for the 'GPU-CUDA' target, see 'element/example11.c'.
+
+Bug fixes:
+- Fixed a compatibility problem with CAST version 0.2.0.
+
+Miscellaneous:
+- Added proper error messaging to catch various exceptions 
+- Reversed the order of loop-flattening to obtain coalesced memory accesses (in particular for the 'GPU-CUDA' target).
+- Renamed 'tile' into 'chunk', since 'tile' might imply using a 2D chunk of data.
+- Changed '#pragma bones' into '#pragma species' to match the algorithmic species naming.
+- Added a warning message for negative or zero range dimensions.
+- Organized the search-and-replace parameters found in skeletons, renamed most of them and added a few new.
+- Added headers to the code examples and cleaned them up.
+- Added a warning message if an 'endkernel' pragma is missing.
+- Improved the way error messages are thrown.
+
+###################
+### v0.9 (Beta) ###
+###################
+
+General:
+- Implemented the new 'algorithmic species' using ranges, thus creating support for for-loops with affine functions as loop-bounds.
+- Updated the examples
+
+Supported targets:
+- Changed the names of the targets 'GPU-OPENCL' and 'CPU-OPENCL' into 'GPU-OPENCL-AMD' and 'CPU-OPENCL-INTEL' respectively.
+- Added a new target 'CPU-C' which implements a C-to-C pass-through.
+- Added a new target 'CPU-OPENMP', which uses OpenMP to create 4 CPU threads.
+- Added a new target 'CPU-OPENCL-AMD'. This target is similar to 'CPU-OPENCL-INTEL', but targets the AMD APP.
+
+Skeletons performance/readability/usability tuning:
+- Added a basic prefetching technique in the local memory for the neighbourhood skeleton for the 'GPU-CUDA' target.
+- Removed the first entry in the transformation settings, which was used in previous versions to set the dimensions (now automatically detected).
+- Changed the 'GPU-CUDA' skeletons such that host files can be compiled with a C99 compiler.
+- Tuned 'CPU-OPENCL-INTEL' performance for Intel's OpenCL SDK.
+- Created aligned memory allocation functions to enable zero-copy possibilities for the 'CPU-OPENCL-INTEL' target.
+- Completed the addition of 'bones_' for every variable in the skeletons.
+
+Verification code:
+- Create a verification function specific to each output.
+- Moved the verification code (including the original code) to a separate file, which is only generated if '-c' is provided as a flag to Bones.
+
+Bug fixes:
+- Fixed a bug which would create function names starting with a digit.
+- Adjusted the use of directory structures in the code for Windows-compatibility.
+- Fixed a bug where variables for verification would have duplicate names.
+- Fixed a bug where verification code would not compile for 'unsigned int' types.
+- Fixed a memory leak which would occur when verification is enabled.
+- Fixed a bug where statements of the form 'a[i]++' would not be recognized as input nor as output. They are now rewritten as 'a[i]=a[i]+1'.
+
+Miscellaneous:
+- Added support for selective copying-out (based on array access ranges)
+- Added support for defines found in header functions (pre-processor now also pre-processes the header files)
+- Added the possibility to specify the order of inputs/outputs in the classification by giving their names (if not given, the default ordering is assumed).
+- Writing to a specific location in an array followed by a read no longer considers the array as input and output, it is now output only.
+- Added a check to see if for-loops start and end as expected (as provided by the ranges given through the 'algorithmic species').
+- Create a 'simplify' function, which simplifies math expressions to a certain extend. A test is included to give a few examples of what it can do.
+- Clean-up of the Rakefile, addition of stub tasks to compile and execute example code, and the addition of an 'add new target' task.
+- Changed the code such that the core components of Bones (the 'lib' folder) do not have to be adjusted to add a new target.
+- Added performance measurement for original code in case verification is enabled.
+- Renamed 'Tribe' into 'Species' and 'Primitive' into 'Algorithm'.
+
+###################
+### v0.8 (Beta) ###
+###################
+
+Initial release.
+
+###################

@@ -1,0 +1,30 @@
+###################################################################
+# Each line holds one mapping from species to skeleton
+# The ordering is always ['chunk','neighbourhood','element','shared','void']
+# The pattern 'full' is omitted from matching (will thus always match)
+# 'D' denotes any ranges (e.g. D|element can be any dimension)
+# 'N' denotes any range (e.g. N,N|element must be 2D)
+# '+' denotes one or more of these patterns
+###################################################################
+D|chunk(D)+                                    -> D|chunk(D)+              :default                             :00
+D|chunk(D)+                                    -> D|chunk(D)+ ^ D|element+ :default                             :00
+D|chunk(D)+ ^ D|element+                       -> D|chunk(D)+              :default                             :00
+D|chunk(D)+ ^ D|element+                       -> D|chunk(D)+ ^ D|element+ :default                             :00
+N,N|chunk(1,N) ^ N,N|chunk(1,N)+               -> D|element+               :2xN-N-chunk-1-N-to-D-element        :30
+N,N|chunk(1,N) ^ N,N|chunk(1,N)+ ^ D|element+  -> D|element+               :2xN-N-chunk-1-N-to-D-element        :30
+N,N|chunk(1,N)+                                -> D|element+               :N-N-chunk-1-N-to-D-element          :20
+N,N|chunk(1,N)+ ^ D|element+                   -> D|element+               :N-N-chunk-1-N-to-D-element          :20
+N,N|chunk(D)+                                  -> N,N|element+             :default                             :40
+N,N|chunk(D)+ ^ N,N|element+                   -> N,N|element+             :default                             :40
+D|chunk(D)+                                    -> D|element+               :default                             :00
+D|chunk(D)+ ^ D|neighbourhood(D)+ ^ D|element+ -> D|element+               :default                             :00
+D|chunk(D)+ ^ D|element+                       -> D|element+               :default                             :00
+N|neighbourhood(N)+                            -> N|element+               :N-neighbourhood-N-to-N-element      :10
+D|neighbourhood(D)+                            -> D|element+               :default                             :00
+D|neighbourhood(D)+ ^ D|element+               -> D|element+               :default                             :00
+D|element+                                     -> D|chunk(D)+              :default                             :00
+D|element+                                     -> D|element+               :default                             :00
+D|element                                      -> 1|shared                 :D-element-to-1-shared               :02 03 04 05
+D|element+                                     -> D|shared+                :default                             :08
+D|element+                                     -> D|element+ ^ D|shared+   :default                             :08
+D|void                                         -> D|element+               :default                             :00
