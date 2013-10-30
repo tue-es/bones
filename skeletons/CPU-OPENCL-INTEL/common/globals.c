@@ -103,7 +103,7 @@ void bones_initialize_target(void) {
   cl_platform_id bones_platform_ids[10];
   bones_errors = clGetPlatformIDs(bones_num_platforms,bones_platform_ids,NULL); error_check(bones_errors);  
   
-  // Select the AMD APP platform
+  // Select the Intel SDK platform
   char bones_buffer[1024];
   cl_uint bones_platform;
   for(cl_uint bones_platform_id=0; bones_platform_id<bones_num_platforms; bones_platform_id++) {

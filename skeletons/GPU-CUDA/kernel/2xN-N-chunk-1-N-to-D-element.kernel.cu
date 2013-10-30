@@ -72,11 +72,9 @@ __global__ void bones_kernel_<algorithm_name>_2(<in1_type><in1_devicepointer> <i
 // Function to start the kernel
 extern "C" void bones_prekernel_<algorithm_name>_0(<devicedefinitions>, <argument_definition>) {
   int bones_block_size;
-  if      (<parallelism> >= 64*512) { bones_block_size = 512;}
-  else if (<parallelism> >= 64*256) { bones_block_size = 256;}
-  else if (<parallelism> >= 64*128) { bones_block_size = 128;}
-  else if (<parallelism> >= 64*64 ) { bones_block_size = 64; }
-  else { bones_block_size = 32; }
+  if      (<parallelism> >= 64*512 ) { bones_block_size = 512; }
+  else if (<parallelism> >= 64*256 ) { bones_block_size = 256; }
+  else                               { bones_block_size = 128; }
   
   // First perform some pre-shuffling (for the first input)
   <in0_type>* shuffled_<in0_name> = 0;
@@ -86,7 +84,7 @@ extern "C" void bones_prekernel_<algorithm_name>_0(<devicedefinitions>, <argumen
   bones_kernel_<algorithm_name>_1<<< bones_grid1, bones_threads1 >>>(<in0_name>, shuffled_<in0_name>, <argument_name>);
   <in0_type>* temp_<in0_name> = <in0_name>;
   <in0_name> = shuffled_<in0_name>;
-  cudaFree(temp_<in0_name>);
+  //cudaFree(temp_<in0_name>);
   
   // First perform some pre-shuffling (for the second input)
   <in0_type>* shuffled_<in1_name> = 0;
@@ -96,7 +94,7 @@ extern "C" void bones_prekernel_<algorithm_name>_0(<devicedefinitions>, <argumen
   bones_kernel_<algorithm_name>_2<<< bones_grid2, bones_threads2 >>>(<in1_name>, shuffled_<in1_name>, <argument_name>);
   <in1_type>* temp_<in1_name> = <in1_name>;
   <in1_name> = shuffled_<in1_name>;
-  cudaFree(temp_<in1_name>);
+  //cudaFree(temp_<in1_name>);
   
   // Then run the original kernel
   dim3 bones_threads0(bones_block_size);

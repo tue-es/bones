@@ -8,7 +8,7 @@ Gem::Specification.new do |bones|
 	
 	# Gem description and documentation
 	bones.summary     = "The Bones source-to-source compiler"
-	bones.description = "Bones is a source-to-source compiler based on algorithmic skeletons and algorithmic species. It takes C code as input (annotated with species information), and generates parallel code in languages such as CUDA, OpenCL, and OpenMP. The generated code is to be executed on a GPU or a multi-core CPU."
+	bones.description = "Bones is a source-to-source compiler based on algorithmic skeletons and algorithmic species. It takes C code as input (annotated with species information by A-Darwin), and generates parallel code in languages such as CUDA, OpenCL, and OpenMP. The generated code can be executed on a GPU or a multi-core CPU."
 	bones.rdoc_options << '--title' << 'Bones' << '--line-numbers'
 
 
@@ -21,10 +21,12 @@ Gem::Specification.new do |bones|
 	bones.add_dependency 'rake'
 	bones.add_dependency 'trollop'
 	bones.add_dependency 'cast'
+	bones.add_dependency 'symbolic'
 
 	# Executables
 	bones.bindir = 'bin'
 	bones.executables << 'bones'
+	bones.executables << 'adarwin'
 
 	# Files
 	bones.extra_rdoc_files = ['README.rdoc']

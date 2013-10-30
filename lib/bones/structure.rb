@@ -46,16 +46,26 @@ module Bones
 		
 		# Method to get the start of a range given a dimension 'n'.
 		# The method returns the proper simplified result, taking
-		# chunk-sizes into account.
+		# chunk/neighbourhood-sizes into account.
 		def from_at(n)
-			return simplify(from(@dimensions[n]))
+			if (neighbourhood?)
+				return simplify('('+from(@dimensions[n])+')-('+from(@parameters[n])+')')
+			else
+				return simplify(from(@dimensions[n]))
+			end
 		end
 		
 		# Method to get the end of a range given a dimension 'n'.
 		# The method returns the proper simplified result, taking
-		# chunk-sizes into account.
+		# chunk/neighbourhood-sizes into account.
 		def to_at(n)
-			return (chunk?) ? simplify('((('+to(@dimensions[n])+'+1)/('+to(@parameters[n])+'+1))-1)') : simplify(to(@dimensions[n]))
+			if (chunk?)
+				return simplify('((('+to(@dimensions[n])+'+1)/('+to(@parameters[n])+'+1))-1)')
+			elsif (neighbourhood?)
+				return simplify('('+to(@dimensions[n])+')-('+to(@parameters[n])+')')
+			else
+				return simplify(to(@dimensions[n]))
+			end
 		end
 		
 		# Method to verify if a structure is empty or not (e.g. if

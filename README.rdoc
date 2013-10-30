@@ -1,4 +1,11 @@
+
+= Bones and A-Darwin
+This README covers both the source-to-source compiler Bones and the species extraction tool A-Darwin. Please refer to the corresponding sections for documentation.
+
+
 = Bones
+
+== Introduction
 Recent advances in multi-core and many-core processors requires programmers to exploit an increasing amount of parallelism from their applications. Data parallel languages such as CUDA and OpenCL make it possible to take advantage of such processors, but still require a large amount of effort from programmers. To address the challenge of parallel programming, we introduce Bones.
 
 Bones is a source-to-source compiler based on algorithmic skeletons and a new algorithm classification (named 'algorithmic species'). The compiler takes C-code annotated with class information as input and generates parallelized target code. Targets include NVIDIA GPUs (through CUDA), AMD GPUs (through OpenCL) and CPUs (through OpenCL and OpenMP). Bones is open-source, written in the Ruby programming language, and is available through our website. The compiler is based on the C-parser CAST, which is used to parse the input code into an abstract syntax tree (AST) and to generate the target code from a transformed AST.
@@ -7,53 +14,26 @@ Bones is a source-to-source compiler based on algorithmic skeletons and a new al
 The usage is as follows:
       bones --application <input> --target <target> [OPTIONS]
 With the following flags:
-    --application, -a <s>:   Input application file
-         --target, -t <s>:   Target processor (choose from: GPU-CUDA, GPU-OPENCL-AMD,
-                             CPU-OPENCL-INTEL, CPU-OPENCL-AMD, CPU-OPENMP, CPU-C)
-       --measurements, -m:   Enable/disable timers
-             --verify, -c:   Verify correctness of the generated code
-            --version, -v:   Print version and exit
-               --help, -h:   Show this message
+       --application, -a <s>:   Input application file
+            --target, -t <s>:   Target processor (choose from: CPU-C, CPU-OPENCL-AMD,
+                                CPU-OPENCL-INTEL, CPU-OPENMP,GPU-CUDA, GPU-OPENCL-AMD)
+          --measurements, -m:   Enable/disable timers
+                --verify, -c:   Verify correctness of the generated code
+   --only-alg-number, -o <i>:   Only generate code for the x-th species (99 -> all)
+      --merge-factor, -f <i>:   Thread merge factor, default is 1 (==disabled)
+  --register-caching, -r <i>:   Enable register caching: 1:enabled (default), 0:disabled
+         --zero-copy, -z <i>:   Enable OpenCL zero-copy: 1:enabled (default), 0:disabled
+         --skeletons, -s <i>:   Enable non-default skeletons: 1:enabled (default), 0:disabled
+               --version, -v:   Print version and exit
+                  --help, -h:   Show this message
 
 Bones can be invoked from the command-line. Two arguments (-a and -t) are mandatory, others are optional. This is an example of the usage of Bones assuming the file '+example.c+' to be present:
   bones -a example.c -t GPU-CUDA -c
 
 == Examples
-The best place to start experimenting with Bones is the '+examples+' directory. A large number of examples are available in this folder, grouped by algorithmic species (either element, neighbourhood, shared or chunk). The examples illustrate different kinds of coding styles and give a large number of different classes to work with. The folder '+benchmarks+' gives more examples, taken from the PolyBench/C benchmark set. Additionally, a folder '+applications+' is included, containing example complete applications. Currently, the following examples are available:
- |-- element                      |-- applications
- |   |-- example1.c               |   \-- ffos.c
- |   |-- example2.c               \-- benchmarks
- |   |-- example3.c                   |-- 2mm.c
- |   |-- example4.c                   |-- 3mm.c
- |   |-- example5.c                   |-- adi.c
- |   |-- example6.c                   |-- atax.c
- |   |-- example7.c                   |-- bicg.c
- |   |-- example8.c                   |-- cholesky.c
- |   |-- example9.c                   |-- correlation.c
- |   |-- example10.c                  |-- covariance.c
- |   |-- example11.c                  |-- doitgen.c
- |   \-- example12.c                  |-- durbin.c
- |-- neighbourhood                    |-- dynprog.c
- |   |-- example1.c                   |-- fdtd-2d-apml.c
- |   |-- example2.c                   |-- fdtd-2d.c
- |   |-- example3.c                   |-- floyd-warshall.c
- |   \-- example4.c                   |-- gemm.c
- |-- shared                           |-- gemver.c
- |   |-- example1.c                   |-- gesummv.c
- |   |-- example2.c                   |-- jacobi-1d-imper.c
- |   |-- example3.c                   |-- jacobi-2d-imper.c
- |   |-- example4.c                   |-- lu.c
- |   \-- example5.c                   |-- ludcmp.c
- |-- chunk                            |-- mvt.c
- |   |-- example1.c                   |-- reg_detect.c
- |   |-- example2.c                   |-- saxpy.c
- |   |-- example3.c                   |-- seidel-2d.c
- |   |-- example4.c                   |-- syr2k.c
- |   \-- example5.c                   |-- syrk.c
-                                      |-- trisolv.c
-                                      \-- trmm.c
+The best place to start experimenting with Bones is the '+examples+' directory. A large number of examples are available in this folder, grouped by algorithmic species (either element, neighbourhood, shared or chunk). The examples illustrate different kinds of coding styles and give a large number of different classes to work with. The folder '+benchmarks+' gives more examples, taken from the PolyBench/C benchmark set. Additionally, a folder '+applications+' is included, containing example complete applications.
 
-All examples can be ran through Bones for a specific target using an automated Rake task. Executing '<tt>rake examples:generate</tt>' or simply '+rake+' will execute Bones for all examples for a given target. The target can be changed in the '+Rakefile+' found in the root directory of Bones.
+All examples can be run through Bones for a specific target using an automated Rake task. Executing '<tt>rake examples:generate</tt>' or simply '+rake+' will execute Bones for all examples for a given target. The target can be changed in the '+Rakefile+' found in the root directory of Bones.
 
 == Limitations
 Bones takes C99 source code as input. However, several coding styles are unsupported as of now or might yield worse performance compared to others. The numerous examples provided should give the user an idea of the possibilities and limitations of the tool. A complete list of coding guidelines and limitations will follow in the future. Currently, an initial list of major limitations and guidelines is given below. In this list, we use '+algorithm+' to denote an algorithm captured by an algorithmic species.
@@ -65,12 +45,47 @@ Bones takes C99 source code as input. However, several coding styles are unsuppo
 * Bones is designed to work on a single input file with at least a function called 'main'. If your (to-be-accelerated) code spawns over multiple C-files, Bones could either be applied multiple times, or the code could be merged into a single file.
 
 
+= A-Darwin
+
+== Introduction
+The original algorithmic species theory included ASET, a polyhedral based algorithmic species extraction tool. Along with a new non-polyhedral theory, we present a new automatic extraction tool named A-Darwin (short for `automatic Darwin').
+
+The new tool is largely equal to ASET in terms of functionality, but is different internally. The tool is based on CAST, a C99 parser which allows analysis on an abstract syntax tree (AST). From the AST, the tool extracts the array references and constructs a 5 or 6-tuple for each loop nest. Following, merging is applied  and the species are extracted. Finally, the species are inserted as pragma's in the original source code. To perform the dependence tests in A-Darwin, we make use of a combination of the GCD and Banerjee tests. Together, these tests are conservative, i.e. we might not find all species.
+
+== Usage
+The usage is as follows:
+      adarwin --application <input> [OPTIONS]
+With the following flags:
+        --application, -a <s>:   Input application file
+  --no-memory-annotations, -m:   Disable the printing of memory annotations
+    --mem-remove-spurious, -r:   Memcopy optimisation: remove spurious copies
+    --mem-copyin-to-front, -f:   Memcopy optimisation: move copyins to front
+    --mem-copyout-to-back, -b:   Memcopy optimisation: move copyouts to back
+      --mem-to-outer-loop, -l:   Memcopy optimisation: move copies to outer loops
+             --fusion, -k <i>:   Type of kernel fusion to perform (0 -> disable)
+              --print-arc, -c:   Print array reference characterisations (ARC) instead of species
+                 --silent, -s:   Become silent (no message printing)
+    --only-alg-number, -o <i>:   Only generate code for the x-th species (99 -> all)
+                --version, -v:   Print version and exit
+                   --help, -h:   Show this message
+
+A-Darwin can be invoked from the command-line. One arguments (-a) is mandatory, others are optional. This is an example of the usage of A-Darwin assuming the file '+example.c+' to be present:
+  adarwin -a example.c -m -s
+
+For now, it is recommended to use the '-m' flag. The memory optimisation flags ('-rfbl') are not fully tested yet. For a more fine-grained classification, A-Darwin is able to print the internal array reference characterisations (ARC) instead (use the '-c' flag).
+
+== Known limitations
+* The dependence test is not reliable yet
+* Code similar to the failing examples are not supported yet
+* Multi-line comments with pre-processor directives inside will not be considered commented out.
+* Custom defined types are not supported. Apart from the default C99 types, FILE and size_t are supported.
+
 
 = Installation procedure
-Installation of Bones is a simple matter of extracting the Bones package to a directory of your choice or installing the gem ('<tt>gem install bones-compiler</tt>'). However, there are a number of prerequisites.
+Installation of Bones and A-Darin is a simple matter of extracting the Bones/A-Darwin package to a directory of your choice. Bones can also be installed as a gem ('<tt>gem install bones-compiler</tt>'). However, there are a number of prerequisites before doing this.
 
 == Prerequisites
-Bones requires the installation of Ruby, the Rubygems gem package manager and two gems:
+Bones/A-Darwin requires the installation of Ruby, the Rubygems gem package manager and several gems:
 1. Any version of *Ruby* *1.8* or *1.9*. Information on Ruby is found at http://www.ruby-lang.org
    * [OS X]: Ruby is pre-installed on any OS X system since Tiger (10.4).
    * [Linux]: Ruby is pre-installed on some Linux based systems. Most Linux package managers (yum, apt-get) will be able to provide a Ruby installation. Make sure that the ruby development package ('+ruby-devel+') is also installed, as it is required by one of the gems.
@@ -79,48 +94,58 @@ Bones requires the installation of Ruby, the Rubygems gem package manager and tw
    * [OS X]: Rubygems is pre-installed on any OS X system since Tiger (10.4).
    * [Linux]: Most Linux package managers will be able to provide a Rubygems installation by installing the package '+rubygems+'.
    * [Windows]: Rubygems for Windows is obtained automatically when installing from http://rubyinstaller.org/
-3. Bones requires two gems, *trollop* and *cast*. Both gems can be installed by calling Rubygems from the command line, i.e.: '<tt>gem install trollop cast</tt>'.
+3. Bones/A-Darwin require the gems, *trollop*, *cast*, and *symbolic*. These gems can be installed by calling Rubygems from the command line, i.e.: '<tt>gem install trollop cast symbolic</tt>'.
 
 For example, all prerequisites can be installed as follows on a Fedora, Red-Hat or CentOS system:
   yum install ruby ruby-devel rubygems
-  gem install trollop cast
+  gem install trollop cast symbolic
 For an Ubuntu, Debian or Mint system, the equivalent commands are:
   apt-get install ruby ruby-devel rubygems
-  gem install trollop cast
+  gem install trollop cast symbolic
 
-== Installing Bones
-To install the compiler, simply extract the '<tt>bones\_x.x.tar.gz</tt>' package to a directory of your choice. The Bones executable is found in the '+bin+' subdirectory. Including the path to the '+bin+' directory to your environmental variable '+PATH+' will make Bones available from any directory on your machine. Starting at version 1.1, Bones is also available as a gem ('<tt>gem install bones-compiler</tt>').
+== Installing Bones/A-Darwin manually
+To install the tools manually, simply extract the '<tt>bones\_x.x.tar.gz</tt>' or '<tt>adarwin\_x.x.tar.gz</tt>' package into a directory of your choice. The Bones/A-Darwin executables are found in the '+bin+' subdirectory. Including the path to the '+bin+' directory to your environmental variable '+PATH+' will make Bones/A-Darwin available from any directory on your machine. Starting at version 1.1, Bones and A-Darwin are also available as a gem ('<tt>gem install bones-compiler</tt>').
 
 
 = Documentation
-There are two ways to go to obtain more information regarding Bones. To obtain more information about the compiler itself, the ideas behind it and the algorithm classification, it is a good idea to read scientific publications. To get more information about the code structure, HTML documentation can be generated automatically using RDoc.
+There are two ways to go to obtain more information regarding Bones/A-Darwin. To obtain more information about the tools themselves, the ideas behind it and the algorithm classification, it is a good idea to read scientific publications. To get more information about the code structure, HTML documentation can be generated automatically using RDoc.
 
 == Code documentation
-Code documentation can be generated automatically using RDoc. Navigate to the installation root of Bones and use Rake to generate documentation: '<tt>rake rdoc</tt>'. More information on using Rake is provided later in this document. Next, open '<tt>rdoc/index.html</tt>' to navigate through the documentation. The same documentation is also available on the web at http://parse.ele.tue.nl/tools/bones/rdoc/.
+Code documentation can be generated automatically using RDoc. Navigate to the installation root of Bones/A-Darwin and use Rake to generate documentation: '<tt>rake rdoc</tt>'. More information on using Rake is provided later in this document. Next, open '<tt>rdoc/index.html</tt>' to navigate through the documentation. The same documentation is also available on the web at http://parse.ele.tue.nl/tools/bones/rdoc/.
 
 == Scientific publications
-Scientific publications related to Bones can be obtained from http://parse.ele.tue.nl/publications. Two publications are relevant:
-1. <b>A Modular and Parameterisable Classification of Algorithms</b>, which provides details on the used algorithm classification. When refering to the algorithm classification in scientific work, you are kindly asked to include the following citations:
+Scientific publications related to Bones/A-Darwin can be obtained from http://www.cedricnugteren.nl/publications. Several publications are relevant:
 
-    @TECHREPORT{Nugteren2011,
-      author      = {Cedric Nugteren and Henk Corporaal},
-      title       = {{A Modular and Parameterisable Classification of Algorithms}},
-      institution = {Eindhoven University of Technology},
-      year        = {2011},
-      number      = {No. ESR-2011-02},
-    }
-2. <b>Introducing 'Bones': A Parallelizing Source-to-Source Compiler Based on Algorithmic Skeletons</b>, which introduces the Bones source-to-source compiler. When refering to Bones in scientific work, you are kindly asked to include the following citations:
+1. <b>Algorithmic Species Revisited: A Program Code Classification Based on Array References</b>, which provides details on the algorithm classification (the species) and A-Darwin (the tool). When refering to the algorithm classification in scientific work, you are kindly asked to include the following citation:
 
-    @INPROCEEDINGS{Nugteren2012,
-      author    = {Cedric Nugteren and Henk Corporaal},
-      title     = {{Introducing `Bones': A Parallelizing Source-to-Source Compiler
-                  Based on Algorithmic Skeletons}},
-      booktitle = {{GPGPU-5: 5th Workshop on General Purpose Processing on
-                  Graphics Processing Units}},
-      year      = {2012},
+    @INPROCEEDINGS{Nugteren2013a,
+       author = {Cedric Nugteren and Rosilde Corvino and Henk Corporaal},
+       title = {Algorithmic Species Revisited: A Program Code Classification Based on Array References},
+       booktitle = {MuCoCoS '13: International Workshop on Multi-/Many-core Computing Systems},
+       year = {2013},
     }
 
+2. <b>Automatic Skeleton-Based Compilation through Integration with an Algorithm Classification</b>, which discusses the Bones source-to-source compiler. When refering to Bones in scientific work, you are kindly asked to include the following citation:
+
+    @INPROCEEDINGS{Nugteren2013b,
+      author    = {Cedric Nugteren and Pieter Custers and Henk Corporaal},
+      title     = {Automatic Skeleton-Based Compilation through Integration with an Algorithm Classification},
+      booktitle = {APPT '13: Advanced Parallel Processing Technology},
+      year      = {2013},
+    }
+
+
+= Rake
+Rake is Ruby's make and can be used to automate tasks. By invoking '<tt>rake -T</tt>', a list of commands will become available. For example, for A-Darwin, the following rake commands are available:
+  rake adarwin[file]  # Extract species descriptions using A-Darwin
+  rake adarwin_test   # Test A-Darwin`s output against golden samples
+  rake clean          # Remove any temporary products.
+  rake clobber        # Remove any generated file.
+  rake clobber_rdoc   # Remove RDoc HTML files
+  rake rdoc           # Build RDoc HTML files
+  rake rerdoc         # Rebuild RDoc HTML files
+With rake, A-Darwin can be tested on a set of examples '<tt>rake adarwin_test</tt>'. Pre-created golden samples are available in the '+test+' folder.
 
 
 = Questions
-Questions can be directed by email. You can find contact details on the personal page of the author at http://parse.ele.tue.nl/cnugteren or on the project page at github.
+Questions can be directed by email. You can find contact details on the personal page of the author at http://www.cedricnugteren.nl/ or http://parse.ele.tue.nl/cnugteren/ or on the project page at github.

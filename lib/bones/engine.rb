@@ -17,13 +17,17 @@ module Bones
 		# A list of timer files to be found in the skeleton library.
 		TIMER_FILES = ['timer_1_start','timer_1_stop','timer_2_start','timer_2_stop']
 		# A list of files to be found in the common directory of the skeleton library (excluding timer files).
-		COMMON_FILES = ['prologue','epilogue','mem_prologue','mem_copy_H2D','mem_copy_D2H','mem_epilogue']
+		COMMON_FILES = ['prologue','epilogue','mem_prologue','mem_copy_H2D','mem_copy_D2H','mem_epilogue','mem_global']
 		# The name of the file containing the globals as found in the skeleton library
 		COMMON_GLOBALS = 'globals'
 		# The name of the file containing the header file for the original C code as found in the skeleton library
 		COMMON_HEADER = 'header'
 		# The name of the file containing the globals for the kernel files as found in the skeleton library
 		COMMON_GLOBALS_KERNEL = 'globals_kernel'
+		# The name of the file containing the scheduler code
+		COMMON_SCHEDULER = 'scheduler'
+		# Global timers
+		GLOBAL_TIMERS = 'timer_globals'
 		
 		# The extension of a host file in the skeleton library. See also SKELETON_DEVICE.
 		SKELETON_HOST = '.host'
@@ -54,13 +58,15 @@ module Bones
 		#             --help, -h:   Show this message
 		#
 		def initialize
-			@result = {:original_code          => [],
-			           :header_code            => [],
-			           :host_declarations      => [],
-			           :host_code_lists        => [],
-			           :algorithm_declarations => [],
-			           :algorithm_code_lists   => [],
-			           :verify_code            => []}
+			@result = {:original_code            => [],
+			           :header_code              => [],
+			           :host_declarations        => [],
+			           :host_code_lists          => [],
+			           :algorithm_declarations   => [],
+			           :algorithm_code_lists     => [],
+			           :verify_code              => [],
+			           :host_device_mem_globals  => []}
+			@state = 0
 			
 			# Provides a list of possible targets (e.g. GPU-CUDA, 'CPU-OPENCL-INTEL').
 			targets = []
@@ -86,6 +92,9 @@ module Bones
 				opt :verify,          'Verify correctness of the generated code',             :short => 'c', :default => false
 				opt :only_alg_number, 'Only generate code for the x-th species (99 -> all)',  :short => 'o', :type => Integer, :default => 99
 				opt :merge_factor,    'Thread merge factor, default is 1 (==disabled)',       :short => 'f', :type => Integer, :default => 1
+				opt :register_caching,'Enable register caching: 1:enabled (default), 0:disabled',      :short => 'r', :type => Integer, :default => 1
+				opt :zero_copy       ,'Enable OpenCL zero-copy: 1:enabled (default), 0:disabled',      :short => 'z', :type => Integer, :default => 1
+				opt :skeletons       ,'Enable non-default skeletons: 1:enabled (default), 0:disabled', :short => 's', :type => Integer, :default => 1
 			end
 			Trollop::die 'no input file supplied (use: --application)'              if !@options[:application_given]
 			Trollop::die 'no target supplied (use: --target)'                       if !@options[:target_given]
@@ -102,6 +111,12 @@ module Bones
 			
 			# Set a prefix for functions called from the original file but defined in a host file
 			@prefix = (@options[:target] == 'GPU-CUDA') ? '' : ''
+			
+			# Setting to include the scheduler (CUDA only)
+			@scheduler = (@options[:target] == 'GPU-CUDA') ? true : false
+			
+			# Skip analyse passes for certain targets
+			@skiptarget = false #(@options[:target] == 'PAR4ALL') ? true : false
 			
 			# Set the location for the skeleton library
 			@dir = {}
@@ -125,7 +140,7 @@ module Bones
 		def process
 			
 			# Run the preprocessor
-			preprocessor = Bones::Preprocessor.new(@source,File.dirname(@options[:application]),@basename)
+			preprocessor = Bones::Preprocessor.new(@source,File.dirname(@options[:application]),@basename,@scheduler)
 			preprocessor.process
 			@result[:header_code] = preprocessor.header_code
 			@result[:device_header] = preprocessor.device_header
@@ -137,11 +152,20 @@ module Bones
 			parser.type_names << 'size_t'
 			ast = parser.parse(preprocessor.target_code)
 			ast.preprocess
+
+			# Add the scheduler's global code
+			if @scheduler
+				@result[:host_code_lists].push(File.read(File.join(@dir[:common_library],COMMON_SCHEDULER+@extension)))
+			end
 			
 			# Set the algorithm's skeleton and generate the global code
 			one_time = true
 			preprocessor.algorithms.each_with_index do |algorithm,algorithm_number|
 				algorithm.species.set_skeleton(File.join(@dir[:library],SKELETON_FILE))
+				if @options[:skeletons] == 0
+					algorithm.species.skeleton_name = 'default'
+					algorithm.species.settings.gsub!('10','00').gsub!('20','00').gsub!('30','00')
+				end
 				if algorithm.species.skeleton_name && one_time
 					@result[:host_code_lists].push(File.read(File.join(@dir[:common_library],COMMON_GLOBALS+@extension)))
 					@result[:algorithm_code_lists].push(File.read(File.join(@dir[:common_library],COMMON_GLOBALS_KERNEL+@extension)))
@@ -149,24 +173,60 @@ module Bones
 				end
 			end
 			
-			# Perform code generation
+			# Perform code generation (per-species code)
 			@result[:original_code] = ast
+			arrays = []
 			preprocessor.algorithms.each_with_index do |algorithm,algorithm_number|
 				if @options[:only_alg_number] == 99 || algorithm_number == [@options[:only_alg_number],preprocessor.algorithms.length-1].min
 					puts MESSAGE+'Starting code generation for algorithm "'+algorithm.name+'"'
 					if algorithm.species.skeleton_name
 						algorithm.merge_factor = @options[:merge_factor] if (@options[:target] == 'GPU-CUDA')
+						algorithm.register_caching_enabled = @options[:register_caching]
 						algorithm.set_function(ast)
-						algorithm.populate_variables(ast,preprocessor.defines)
+						algorithm.populate_variables(ast,preprocessor.defines) if !@skiptarget
 						algorithm.populate_lists()
-						algorithm.populate_hash()
+						algorithm.populate_hash() if !@skiptarget
 						generate(algorithm)
 						puts MESSAGE+'Code generated using the "'+algorithm.species.skeleton_name+'" skeleton'
+						arrays.concat(algorithm.arrays)
 					else
 						puts WARNING+'Skeleton "'+algorithm.species.name+'" not available'
 					end
 				end
 			end
+			
+			# Only if the scheduler is included
+			if @scheduler
+			
+				# Perform code generation (sync statements)
+				@result[:host_declarations].push('void bones_synchronize(int bones_task_id);')
+				
+				# Perform code generation (memory allocs)
+				allocs = []
+				preprocessor.copies.each do |copy|
+					if !allocs.include?(copy.name)
+						generate_memory('alloc',copy,arrays,0)
+						allocs << copy.name
+					end
+				end
+				
+				# Perform code generation (memory copies)
+				preprocessor.copies.each_with_index do |copy,index|
+					#puts MESSAGE+'Generating copy code for array "'+copy.name+'"'
+					generate_memory('copy',copy,arrays,index)
+				end
+				
+				# Perform code generation (memory frees)
+				frees = []
+				preprocessor.copies.each do |copy|
+					if !frees.include?(copy.name)
+						generate_memory('free',copy,arrays,0)
+						frees << copy.name
+					end
+				end
+			
+			end
+			
 		end
 
 		# This method writes the output code to files. It creates
@@ -202,7 +262,7 @@ module Bones
 				end
 			end
 			
-			# Populate the verification file4
+			# Populate the verification file
 			if @options[:verify]
 				File.open(File.join(directory,@options[:name]+OUTPUT_VERIFICATION+@extension),'w') do |verification|
 					verification.puts @result[:header_code]
@@ -212,15 +272,22 @@ module Bones
 				end
 			end
 			
-			# Populate the target file
+			# Populate the target file (host)
 			File.open(File.join(directory,@options[:name]+OUTPUT_HOST+@extension),'w') do |target|
+				target.puts '#include <cuda_runtime.h>'+NL if @options[:target] == 'GPU-CUDA'
+				target.puts "#define ZEROCOPY 0"+NL if @options[:zero_copy] == 0 && @options[:target] == 'CPU-OPENCL-INTEL'
+				target.puts "#define ZEROCOPY 1"+NL if @options[:zero_copy] == 1 && @options[:target] == 'CPU-OPENCL-INTEL'
 				target.puts @result[:header_code]
-				target.puts @result[:algorithm_declarations]
 				target.puts
+				target.puts @result[:host_device_mem_globals]
+				target.puts
+				target.puts @result[:algorithm_declarations]
 				target.puts @result[:host_code_lists]
+				target.puts
+				target.puts File.read(File.join(@dir[:common_library],GLOBAL_TIMERS+@extension))
 			end
 			
-			# Populate the algorithm file
+			# Populate the algorithm file (device)
 			File.open(File.join(directory,@options[:name]+OUTPUT_DEVICE+@algorithm_extension),'w') do |algorithm|
 				algorithm.puts @result[:device_header]
 				algorithm.puts @result[:algorithm_code_lists]
@@ -251,7 +318,7 @@ module Bones
 			             :device => File.read(file_name_device+@algorithm_extension)}
 			
 			# Perform the transformations on the algorithm's code
-			algorithm.perform_transformations(algorithm.species.settings)
+			algorithm.perform_transformations(algorithm.species.settings) if !@skiptarget
 			
 			# Load the common skeletons from the skeleton library
 			COMMON_FILES.each do |skeleton|
@@ -291,13 +358,19 @@ module Bones
 				minihash = { :array               => array.name,
 				             :type                => array.type_name,
 				             :flatten             => array.flatten,
-				             :variable_dimensions => array.size.join('*')}
+				             :variable_dimensions => array.size.join('*'),
+				             :state               => @state.to_s}
+				@state += 1
 				
 				# Apply the mini-search-and-replace hash to create the memory allocations, memory copies (if input only), etc.
 				processed[:mem_prologue] += search_and_replace(minihash,skeletons[:mem_prologue])
 				processed[:mem_copy_H2D] += search_and_replace(minihash,skeletons[:mem_copy_H2D]) if array.input? || array.species.shared?
 				processed[:mem_epilogue] += search_and_replace(minihash,skeletons[:mem_epilogue])
+			
+				# Add the device declarations
+				@result[:host_device_mem_globals].push(search_and_replace(minihash,skeletons[:mem_global]))
 			end
+			
 			# Iterate over all the array variables and create a mini-search-and-replace hash for each array (output arrays)
 			algorithm.arrays.select(OUTPUT).each_with_index do |array, num_array|
 				hash = algorithm.hash["out#{num_array}".to_sym]
@@ -305,7 +378,9 @@ module Bones
 				             :type                => array.type_name,
 				             :flatten             => array.flatten,
 				             :offset              => '('+hash[:dimension0][:from]+')',
-				             :variable_dimensions => '('+hash[:dimensions]+')'}
+				             :variable_dimensions => '('+hash[:dimensions]+')',
+				             :state               => @state.to_s}
+				@state += 1
 				
 				# Perform selective copy for arrays with 2 dimensions (uses a for-loop over the memory copies)
 				if array.dimensions == 2 && @options[:target] == 'GPU-CUDA' && false
@@ -346,11 +421,17 @@ module Bones
 			search_and_replace!(algorithm.hash,skeletons[:epilogue])
 			
 			# Construct the final host function, inluding the timers and memory copies
-			host = skeletons[:prologue     ] + skeletons[:timer_1_start] +
-			       processed[:mem_prologue ] + processed[:mem_copy_H2D ] +
-			       skeletons[:timer_2_start] + skeletons[:host         ] + skeletons[:timer_2_stop ] +
-			       processed[:mem_copy_D2H ] + processed[:mem_epilogue ] +
-			       skeletons[:timer_1_stop ] + skeletons[:epilogue     ]
+			if @scheduler
+				host = skeletons[:prologue     ] + 
+				       skeletons[:timer_2_start] + skeletons[:host         ] + skeletons[:timer_2_stop ] +
+				       skeletons[:epilogue     ]
+			else
+				host = skeletons[:prologue     ] + 
+				       skeletons[:timer_1_start] + processed[:mem_prologue ] + processed[:mem_copy_H2D ] +
+				       skeletons[:timer_2_start] + skeletons[:host         ] + skeletons[:timer_2_stop ] +
+				       processed[:mem_copy_D2H ] + processed[:mem_epilogue ] + skeletons[:timer_1_stop ] + 
+				       skeletons[:epilogue     ]
+			end
 			
 			# Generate code to replace the original code, including verification code if specified by the option flag
 			verify_skeleton = File.read(File.join(@dir[:verify_library],'verify_results.c'))
@@ -362,22 +443,57 @@ module Bones
 			# Add a performance model to the original code
 			#replacement_code.insert(0,algorithm.performance_model_code('model'))
 			
-			# Replace mallocs and frees in the original code with aligned memory allocations (only for CPU-OpenCL targets)
-			if @options[:target] == 'CPU-OPENCL-INTEL'
-				@result[:original_code].seach_and_replace_function_call(C::Variable.parse('malloc'),C::Variable.parse(VARIABLE_PREFIX+'malloc_128'))
-				@result[:original_code].seach_and_replace_function_call(C::Variable.parse('free'),C::Variable.parse(VARIABLE_PREFIX+'free_128'))
+			# Replace mallocs and frees in the original code with aligned memory allocations (only for CPU-OpenCL targets with zero-copy)
+			if @options[:zero_copy] == 1 && @options[:target] == 'CPU-OPENCL-INTEL'
+				@result[:original_code].search_and_replace_function_call(C::Variable.parse('malloc'),C::Variable.parse(VARIABLE_PREFIX+'malloc_128'))
+				@result[:original_code].search_and_replace_function_call(C::Variable.parse('free'),C::Variable.parse(VARIABLE_PREFIX+'free_128'))
 			end
 			
 			# Give the original main function a new name
-			@result[:original_code].seach_and_replace_function_definition('main',VARIABLE_PREFIX+'main')
+			@result[:original_code].search_and_replace_function_definition('main',VARIABLE_PREFIX+'main')
 			
 			# Replace the original code with a function call to the newly generated code
-			@result[:original_code].seach_and_replace_node(algorithm.code,replacement_code)
+			@result[:original_code].search_and_replace_node(algorithm.code,replacement_code)
 			
 			# The host code is generated, push the data to the output hashes
 			accelerated_definition = 'void '+algorithm.name+'_accelerated('+algorithm.lists[:host_definition]+')'
-			@result[:host_code_lists].push(@prefix+accelerated_definition+' {'+NL+host+NL+'}')
+			@result[:host_code_lists].push(@prefix+accelerated_definition+' {'+NL+host+NL+'}'+NL+NL)
 			@result[:host_declarations].push(@prefix+accelerated_definition+';'+NL+@prefix+original_definition+';')
+		end
+		
+		
+		def generate_memory(type,copy,arrays,index)
+			
+			# Find the corresponding array
+			arrays.each do |array|
+				if array.name == copy.name && (array.direction == copy.direction || array.direction == INOUT)
+					
+					# Load the skeleton from the skeleton library
+					type += copy.direction if type == 'copy'
+					skeleton = File.read(File.join(@dir[:common_library],'mem_async_'+type+@extension))
+					
+					# Create the find-and-replace hash
+					minihash = { :array               => copy.name,
+					             :id                  => copy.id,
+					             :index               => index.to_s,
+					             :direction           => copy.direction,
+					             :definition          => array.definition,
+					             :type                => array.type_name,
+					             :flatten             => array.flatten,
+					             :offset              => '0',
+					             :variable_dimensions => array.size.join('*'),
+					             :state               => copy.deadline}
+					
+					# Instanstiate the skeleton and add it to the final result
+					@result[:host_code_lists].push(search_and_replace(minihash,skeleton))
+					
+					# Add a forward declaration of this function
+					@result[:host_declarations].push(copy.get_definition(array.definition,type))
+					
+					# Done
+					return
+				end
+			end
 		end
 		
 	end

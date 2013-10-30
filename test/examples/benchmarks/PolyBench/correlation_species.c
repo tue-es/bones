@@ -1,0 +1,97 @@
+//
+// This file is part of the Bones source-to-source compiler examples. The C-code
+// is largely identical in terms of functionality and variable naming to the code
+// found in PolyBench/C version 3.2. For more information on PolyBench/C or Bones
+// please use the contact information below.
+//
+// == More information on PolyBench/C
+// Contact............Louis-Noel Pouchet <pouchet@cse.ohio-state.edu>
+// Web address........http://polybench.sourceforge.net/
+// 
+// == More information on Bones
+// Contact............Cedric Nugteren <c.nugteren@tue.nl>
+// Web address........http://parse.ele.tue.nl/bones/
+//
+// == File information
+// Filename...........benchmark/correlation.c
+// Author.............Cedric Nugteren
+// Last modified on...07-Feb-2013
+//
+
+#include "common.h"
+
+// This is 'correlation', a correlation computation algorithm
+int main(void) {
+	int i,j,j1,j2;
+	float meanj;
+	
+	// Declare arrays on the stack
+	float data[N][M];
+	float mean[M];
+	float stddev[M];
+	float symmat[M][M];
+	
+	// Set the constants
+	float float_n = 1.2;
+	float eps = 0.1;
+	
+	// Set the input data
+	for (i=0; i<N; i++) {
+		for (j=0; j<M; j++) {
+			data[i][j] = ((float) i*j) / M;
+		}
+	}
+	
+	// Perform the computation
+	#pragma scop
+	{
+		#pragma species kernel data[0:N-1,0:M-1]|chunk(0:N-1,0:0) -> mean[0:M-1]|element
+		for (j = 0; j < M; j++) {
+			mean[j] = 0.0;
+			for (i = 0; i < N; i++) {
+				mean[j] += data[i][j];
+			}
+			mean[j] /= float_n;
+		}
+		#pragma species endkernel correlation_k1
+		#pragma species kernel mean[0:M-1]|element ^ data[0:N-1,0:M-1]|chunk(0:N-1,0:0) -> stddev[0:M-1]|element
+		for (j = 0; j < M; j++) {
+			stddev[j] = 0.0;
+			meanj = mean[j];
+			for (i = 0; i < N; i++) {
+				stddev[j] += (data[i][j] - meanj) * (data[i][j] - meanj);
+			}
+			stddev[j] /= float_n;
+			stddev[j] = sqrt(stddev[j]);
+			stddev[j] = stddev[j] <= eps ? 1.0 : stddev[j];
+		}
+		#pragma species endkernel correlation_k2
+		#pragma species kernel data[0:N-1,0:M-1]|element ^ mean[0:M-1]|element ^ stddev[0:M-1]|element -> data[0:N-1,0:M-1]|element
+		for (i = 0; i < N; i++) {
+			for (j = 0; j < M; j++) {
+				data[i][j] -= mean[j];
+				data[i][j] /= sqrt(float_n) * stddev[j];
+			}
+		}
+		#pragma species endkernel correlation_k3
+	}
+	#pragma endscop
+	
+	// Calculate the MxM correlation matrix
+	for (j1=0; j1<M-1; j1++) {
+		symmat[j1][j1] = 1.0;
+		for (j2=j1+1; j2<M; j2++) {
+			symmat[j1][j2] = 0.0;
+			for (i = 0; i<N; i++) {
+				symmat[j1][j2] += (data[i][j1] * data[i][j2]);
+			}
+			symmat[j2][j1] = symmat[j1][j2];
+		}
+	}
+	symmat[M-1][M-1] = 1.0;
+	
+	// Clean-up and exit the function
+	fflush(stdout);
+	return 0;
+}
+

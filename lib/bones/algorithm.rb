@@ -10,7 +10,7 @@ module Bones
 	# and lists of input/output array variables.
 	class Algorithm < Common
 		attr_reader :name, :species, :code, :lists, :arrays, :id, :function_name
-		attr_accessor :hash, :merge_factor
+		attr_accessor :hash, :merge_factor, :register_caching_enabled
 		
 		# Constant to set the name of the algorithm's accelerated version
 		ACCELERATED = '_accelerated'
@@ -31,14 +31,25 @@ module Bones
 			@original_name = @name+ORIGINAL
 			@accelerated_name = @name+ACCELERATED
 			@species = species
-			@code = C::Statement.parse(code).preprocess
+			begin
+				@code = C::Statement.parse(code).preprocess
+			rescue
+				@code = C::Statement.parse('{'+code+'}').preprocess
+			end
 			@hash = {}
 			@lists = {:host_name => [],:host_definition => [], :argument_name => [], :argument_definition => [], :golden_name => []}
 			@arrays = Variablelist.new()
 			@constants = Variablelist.new()
-			@merge_factor = 1
+			@merge_factor = nil
+			@register_caching_enabled = 1
 			@function_code = ''
 			@function_name = ''
+			
+			# Set the initial hash
+			@hash = {:algorithm_id        => @id,
+			         :algorithm_name      => @name,
+			         :algorithm_basename  => @basename,
+			         :algorithm_filename  => @filename}
 		end
 		
 		# This method sets the code and name for the function in
@@ -119,15 +130,17 @@ module Bones
 					new_code.transform_flatten(array)
 				end
 				
-				# Perform array substitution (conditionally do this)
-				@arrays.outputs.each do |array|
-					if array.species.element?
-						if @arrays.inputs.include?(array)
-							new_code.transform_substitution(array,true)
-						else
-							new_code.transform_substitution(array,false)
+				# Perform array substitution a.k.a. register caching (conditionally do this)
+				if @register_caching_enabled == 1
+					@arrays.outputs.each do |array|
+						if array.species.element?
+							if @arrays.inputs.include?(array)
+								new_code.transform_substitution(array,true)
+							else
+								new_code.transform_substitution(array,false)
+							end
+							extra_indent = INDENT
 						end
-						extra_indent = INDENT
 					end
 				end
 				
@@ -138,23 +151,35 @@ module Bones
 				
 				# Perform thread-merging (experimental)
 				# TODO: Solve the problem related to constants (e.g chunk/example1.c)
-				if @merge_factor == 1 && transformation[0,1] == '4'
-					@merge_factor = 4
+				if @merge_factor == nil
+					if transformation[0,1] == '4' && @hash[:parallelism].to_i >= 1024*1024
+						@merge_factor = 4
+					else
+						@merge_factor = 1
+					end
 				end
 				if @merge_factor > 1
-					puts MESSAGE+'Merging threads by a factor '+@merge_factor.to_s+'.'
-					
-					# Update the hash
-					@hash[:ids] = @hash[:ids].split(NL).map { |line|
-						C::parse(line).transform_merge_threads(@merge_factor,[GLOBAL_ID]+@constants.map{ |c| c.name }).to_s.split(NL).each_with_index.map do |id,index|
-							id.gsub(/\b#{GLOBAL_ID}\b/,"(#{GLOBAL_ID}+gridDim.x*blockDim.x*#{index})")
-						end
-					}.join(NL+INDENT*2)
-					@hash[:parallelism] = (@hash[:parallelism].to_i / @merge_factor).to_s
-					
-					# Transform the code
-					excludes = (@constants+@arrays).map { |c| c.name }
-					new_code.transform_merge_threads(@merge_factor,excludes)
+					puts @hash[:parallelism]
+					if new_code.has_conditional_statements?
+						puts MESSAGE+'Not coarsening ('+@merge_factor.to_s+'x) because of conditional statements in kernel body.'
+					# TODO: Fix this temporary hack for multiple loops with mismatching bounds
+					elsif ((@hash[:parallelism].to_i % @merge_factor) != 0) || (@hash[:parallelism].to_i == 4192256)
+						puts MESSAGE+'Not coarsening ('+@merge_factor.to_s+'x) because of mismatching amount of parallelism ('+@hash[:parallelism]+').'
+					else
+						puts MESSAGE+'Coarsening threads by a factor '+@merge_factor.to_s+'.'
+						
+						# Update the hash
+						@hash[:ids] = @hash[:ids].split(NL).map { |line|
+							C::parse(line).transform_merge_threads(@merge_factor,[GLOBAL_ID]+@constants.map{ |c| c.name }).to_s.split(NL).each_with_index.map do |id,index|
+								id.gsub(/\b#{GLOBAL_ID}\b/,"(#{GLOBAL_ID}+gridDim.x*blockDim.x*#{index})")
+							end
+						}.join(NL+INDENT*2)
+						@hash[:parallelism] = (@hash[:parallelism].to_i / @merge_factor).to_s
+						
+						# Transform the code
+						excludes = (@constants+@arrays).map { |c| c.name }
+						new_code.transform_merge_threads(@merge_factor,excludes)
+					end
 				end
 				
 				# Obtain the complexity in terms of operations for the resulting code
@@ -215,12 +240,8 @@ module Bones
 		# kernel_argument_list
 		#
 		def populate_hash
-			@hash = {:algorithm_id        => @id,
-			         :algorithm_name      => @name,
-			         :algorithm_basename  => @basename,
-			         :algorithm_filename  => @filename,
-			         :argument_name       => @lists[:argument_name],
-			         :argument_definition => @lists[:argument_definition]}
+			@hash[:argument_name] = @lists[:argument_name]
+			@hash[:argument_definition] = @lists[:argument_definition]
 			
 			# Obtain the necessary data for the hash per array
 			parallelisms = []
@@ -278,11 +299,15 @@ module Bones
 						
 						# Generate the index expressions
 						divider = (array.species.chunk?) ? '/'+sum(array.species.parameters[index]) : ''
-						minihash = {:dimensions => (index == dimensions.length-1) ? '1' : dimensions.drop(index+1).map { |d| sum(d) }.join('*'),
-						            :modulo     => (index_reverse != dimensions.length-1) ? '%('+sum(dimension)+divider+')' : '',
-						            :offset     => from(dimension)}
-						expr_global = simplify(search_and_replace(minihash,"((#{GLOBAL_ID}/(<dimensions>))<modulo>)+<offset>"))
-						expr_local  = simplify(search_and_replace(minihash,"((#{LOCAL_ID }/(<dimensions>))<modulo>)+<offset>"))
+						dimensions_hash = (index == dimensions.length-1) ? '1' : dimensions.drop(index+1).map { |d| sum(d) }.join('*')
+						dimensions_hash = simplify(dimensions_hash)
+						dimensions_division = (dimensions_hash == '1') ? '' : '/('+dimensions_hash+')'
+						minihash = {:dimensions1 => "#{GLOBAL_ID}#{dimensions_division}",
+						            :dimensions2 => "#{LOCAL_ID }#{dimensions_division}",
+						            :modulo      => (index_reverse != dimensions.length-1) ? '%('+simplify(sum(dimension)+divider)+')' : '',
+						            :offset      => simplify(from(dimension))}
+						expr_global = search_and_replace(minihash,"((<dimensions1>)<modulo>)+<offset>")
+						expr_local  = search_and_replace(minihash,"((<dimensions2>)<modulo>)+<offset>")
 						
 						# Selectively push the ID definitions to the result array
 						from = array.species.from_at(index)
@@ -342,6 +367,7 @@ module Bones
 		def update_hash(loop_variable)
 			names = @hash[:argument_name].split(', ')
 			definitions = @hash[:argument_definition].split(', ')
+			# TODO: The following two lines give problems with correlation-k4
 			names.delete(loop_variable.to_s)
 			definitions.each { |definition| definitions.delete(definition) if definition =~ /\b#{loop_variable}\b/ }
 			@hash[:argument_name] = names.join(', ')
@@ -387,10 +413,12 @@ module Bones
 						array_names = arrays.map { |a| a.name }.join('","')
 						raise_error(direction.capitalize+'put array count mismatch (expected '+species.length.to_s+', found '+arrays.length.to_s+' ["'+array_names+'"])')
 					end
-					
+
 					# Set the species for the arrays (distinguish between arrays with and without a name)
 					species.each do |structure|
-						array = arrays[0]
+						
+						# Loop over all found arrays and match it with a species
+						array = nil
 						arrays.each do |free_array|
 							if !free_array.species
 								if structure.has_arrayname?
@@ -404,8 +432,17 @@ module Bones
 								end
 							end
 						end
+						
+						# Still haven't found anything, assign the species to an array of equal name
+						if !array
+							arrays.each do |free_array|
+								array = free_array if structure.name == free_array.name
+							end
+						end
+						
+						# Process the assignment
 						array.species = structure
-						#structure.name = array.name
+						raise_error("Species of '#{array.species.name}' is mismatched with array '#{array.name}'") if array.species.name != array.name
 						
 						# Check if the array size was set, if not, it will be set to the species' size
 						if array.size.empty?

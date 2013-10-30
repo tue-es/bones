@@ -1,3 +1,5 @@
   
-  //bones_errors = clEnqueueWriteBuffer(bones_queue, device_<array>, CL_TRUE, 0, <variable_dimensions>*sizeof(<type>), <array><flatten>, 0, NULL, NULL); error_check(bones_errors);
-  //clFinish(bones_queue);
+  #if ZEROCOPY == 0
+    device_<array> = clCreateBuffer(bones_context,CL_MEM_READ_WRITE | CL_MEM_COPY_HOST_PTR,<variable_dimensions>*sizeof(<type>),<array><flatten>, &bones_errors); error_check(bones_errors);
+    clFinish(bones_queue);
+  #endif

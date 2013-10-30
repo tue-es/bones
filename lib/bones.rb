@@ -1,10 +1,6 @@
 
-# Bones requires 'fileutils' from the Ruby standard library.
-require 'fileutils'
-
-# Bones uses the 'trollop' gem to parse command line options.
-require 'rubygems'
-require 'trollop'
+# Include the common part between Bones and Aset
+require 'common.rb'
 
 # We define a custom error class for code generation related
 # errors (any error raised by Bones).
@@ -16,19 +12,8 @@ def raise_error(message) #:nodoc:
 end
 
 # Extending the Ruby standard string class to support some
-# addition methods. They include a hack of the gsub! command,
-# and two methods related to comma removal.
+# additional methods: two methods related to comma removal.
 class String #:nodoc:
-	
-	# Extend the Ruby string class to be able to chain 'gsub!'
-	#-commands. This code is taken from the web.
-	meth = 'gsub!'
-	orig_meth = "orig_#{meth}"
-	alias_method orig_meth, meth
-	define_method(meth) do |*args|
-		self.send(orig_meth, *args)
-		self
-	end
 	
 	# Replace double comma's in a string with a single comma.
 	# This method is useful for function-argument lists.
@@ -213,43 +198,6 @@ module Bones
 			return code
 		end
 		
-		# Helper method to evaluate mathematical expressions, possibly containing
-		# symbols. This method is only used for readability, without it the code
-		# is functionally correct, but expressions might be larger than needed.
-		# This method is only tested on integers.
-		def simplify(expr)
-			raise_error('Invalid expression to simplify') if !expr
-			done = false
-			while !done do
-				old_expr = expr
-				case expr
-					when /^\(([^\(\)]*)\)$/           then expr = $1                                   # Remove outer brackets
-					when /(.*)\((-?\w*)\)(.*)/        then expr = $1+$2+$3                             # Remove brackets with one constant or variable inside
-					when /(.*)\(\(([^\(\)]*)\)\)(.*)/ then expr = $1+'('+$2+')'+$3                     # Substitute double brackets into single brackets
-					when /(.*)(\-\d+)\*(\d+)\b(.*)/   then expr = $1+'+'+(($2.to_i)*($3.to_i)).to_s+$4 # Perform multiplications on constants (starting with a '-')
-					when /(.*)(\-\d+)\+(\d+)\b(.*)/   then expr = $1+'+'+(($2.to_i)+($3.to_i)).to_s+$4 # Perform additions on constants (starting with a '-')
-					when /(.*)(\-\d+)\-(\d+)\b(.*)/   then expr = $1+'+'+(($2.to_i)-($3.to_i)).to_s+$4 # Perform subtractions on constants (starting with a '-')
-					when /(.*)\b(\d+)\*(\d+)\b(.*)/   then expr = $1+(($2.to_i)*($3.to_i)).to_s+$4     # Perform multiplications on constants
-					when /(.*)\b(\d+)\+(\d+)\b(.*)/   then expr = $1+(($2.to_i)+($3.to_i)).to_s+$4     # Perform additions on constants
-					when /(.*)\b(\d+)\-(\d+)\b(.*)/   then expr = $1+(($2.to_i)-($3.to_i)).to_s+$4     # Perform subtractions on constants
-					when /(.*)\b(\w+)\-(\2)\b(.*)/    then expr = $1+'0'+$4                            # Perform subtractions of variables to zero (e.g. 'a-a=0')
-					when /(.*)\/1\b(.*)/              then expr = $1+$2                                # Remove divisions by 1
-					when /(.*)(\+0\b|\b0\+)(.*)/      then expr = $1+$3                                # Remove additions with 0
-					when /(.*[\+\(])\(([^\(\)\*\/\%]+)\)([\+\-\)].*)/ then expr = $1+$2+$3             # Remove brackets that are not needed (e.g. '(a+b)+c')
-				end
-				expr.gsub!(/\s/,'')                   # Remove whitespaces
-				expr.gsub!(/\-\-/,'+')                # Substitute double minusses for a plus
-				expr.gsub!(/\+\-/,'-')                # Substitute plus-minus for a minus
-				expr.gsub!(/(^|\()\+/,'')             # Remove plus signs at the start of a line or after an opening bracket
-				if expr =~ /(.*)\b(\d+)\/(\d+)\b(.*)/ # Perform divisions on constants...
-					division = ($2.to_i)/($3.to_i)      # ...but first check whether the result will be correct (integer division)
-					expr = $1+division.to_s+$4 if division*$3.to_i == $2.to_i
-				end
-				done = true if old_expr == expr
-			end
-			return expr
-		end
-		
 	end
 	
 end
@@ -261,6 +209,7 @@ require 'bones/species.rb'
 require 'bones/algorithm.rb'
 require 'bones/variablelist.rb'
 require 'bones/variable.rb'
+require 'bones/copy.rb'
 require 'bones/preprocessor.rb'
 require 'bones/engine.rb'
 

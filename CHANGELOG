@@ -1,8 +1,45 @@
 ###################
+### v1.3        ###
+###################
+
+General:
+- Implemented kernel fusion in A-Darwin/Bones
+- Added command-line options to test individual optimisations
+- Enabled thread-merging (coarsening) for additional skeletons
+
+Skeletons:
+- Optimised the CUDA skeletons for threadblock sizing
+- Fixed various bugs in the CPU-targets
+
+Bug fixes:
+- Synchronisation statements are now correctly inserted as pragma's
+- Re-enabled the memory optimisations (-rfbl)
+- Minor bug fixes in A-Darwin
+
+###################
+### v1.2        ###
+###################
+
+General:
+- Integrated A-Darwin (a tool to automatically extract algorithmic species) into the Bones source-tree.
+- Added memory transfer optimisations (e.g. CPU-GPU copy optimisations).
+
+A-Darwin:
+- Initial test release of A-Darwin (with many limitations)
+- Added a 'golden' reference set to test the extraction of species
+- Added dependence-test examples
+
+Miscellaneous:
+- Substituted the simplify method by a symbolic math library gem ('symbolic').
+- Updated the readme file
+- Updated the examples
+
+###################
 ### v1.1        ###
 ###################
 
 General:
+- Initial release to RubyGems and initial commit to github.
 - Added support for a compiler optimisation pass: array substitution with a local register copy in the case of chunk to element species.
 - Added support for a compiler optimisation pass: thread-merging, potentially improving re-use through locality at the cost of parallelism.
 - Updated and added examples.

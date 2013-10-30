@@ -26,7 +26,8 @@ module Bones
 	# to::           '31' or '15' or '1'
 	# sum::          '32' or '16' or '3'
 	class Species < Common
-		attr_reader :name, :inputs, :outputs, :skeleton_name, :settings, :prefix
+		attr_reader :name, :inputs, :outputs, :prefix
+		attr_accessor :skeleton_name, :settings
 		
 		# Initializes the species with a prefix, inputs and out-
 		# puts. It additionally verifies the correctness of the 
@@ -144,7 +145,7 @@ module Bones
 						 ((parameters == 'N,N') && (search.parameters.length == 2)) ||
 						 ((parameters == 'N,1') && (search.parameters.length == 2) && simplify(sum(search.parameters[1])) == '1') ||
 						 ((parameters == '1,N') && (search.parameters.length == 2) && simplify(sum(search.parameters[0])) == '1') ||
-						 ((parameters == simplify(search.parameters.map { |r| sum(r) }.join(','))))
+						 ((parameters == search.parameters.map { |r| simplify(sum(r)) }.join(',')))
 						condition = condition && true
 					else
 						condition = false
@@ -156,7 +157,7 @@ module Bones
 				if (dimensions == 'D') ||
 					 ((dimensions == 'N') && (search.dimensions.length == 1)) ||
 					 ((dimensions == 'N,N') && (search.dimensions.length == 2)) ||
-					 ((dimensions == simplify(search.dimensions.map { |r| sum(r) }.join(','))))
+					 ((dimensions == search.dimensions.map { |r| simplify(sum(r)) }.join(',')))
 					condition = condition && true
 				else
 					condition = false

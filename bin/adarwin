@@ -1,0 +1,17 @@
+#!/usr/bin/env ruby
+
+# Set the path for the libraries and the installation directory
+ADARWIN_DIR = File.dirname(__FILE__) + '/../'
+lib_dir = File.join(ADARWIN_DIR,'lib')
+$LOAD_PATH.unshift lib_dir unless $LOAD_PATH.include?(lib_dir)
+
+# Load the libraries
+require 'castaddon.rb'
+require 'adarwin.rb'
+
+# Run the main function
+adarwin = Adarwin::Engine.new
+adarwin.process
+adarwin.write_output
+
+

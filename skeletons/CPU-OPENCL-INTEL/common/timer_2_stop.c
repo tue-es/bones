@@ -8,4 +8,4 @@
   bones_errors = clGetEventProfilingInfo(bones_event, CL_PROFILING_COMMAND_END, sizeof(cl_ulong), &end2, 0); error_check(bones_errors);
   bones_errors = clGetEventProfilingInfo(bones_event, CL_PROFILING_COMMAND_START, sizeof(cl_ulong), &start2, 0); error_check(bones_errors);
   float bones_timer2 = 0.000001 * (end2-start2);
-  printf(">>>\t\t (<algorithm_basename>): Execution time [kernel       ]: %.3lf ms \n", bones_timer2);
+  printf(">>>\t\t Execution time [kernel <algorithm_basename>]: %.3lf ms \n", bones_timer2);

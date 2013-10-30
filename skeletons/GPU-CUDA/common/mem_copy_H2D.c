@@ -1,3 +1,4 @@
   
   // Copy <array> to the device
-  cudaMemcpy(device_<array>, <array><flatten>, <variable_dimensions>*sizeof(<type>), cudaMemcpyHostToDevice);
+  bones_memcpy(device_<array>, <array><flatten>, <variable_dimensions>*sizeof(<type>), cudaMemcpyHostToDevice, <state>, <state>);
+  bones_synchronize(<state>);

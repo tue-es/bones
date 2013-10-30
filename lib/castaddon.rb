@@ -7,12 +7,17 @@ end
 require 'rubygems'
 require 'cast'
 
-# Include the extentions to the CAST gem provided by the author
-# of Bones. These extentions provide a significant amount of
-# functionality for Bones itself.
-require 'castaddon/node.rb'
-require 'castaddon/type.rb'
-require 'castaddon/index.rb'
+# Include the extentions to the CAST gem provided. These
+# extentions provide a significant amount of functionality
+# for Bones and A-Darwin.
+require 'castaddon/node_common.rb'
+require 'castaddon/node_adarwin.rb'
+if File.exists?('lib/bones.rb')
+	require 'castaddon/node_bones.rb'
+	require 'castaddon/transformations.rb'
+	require 'castaddon/type.rb'
+	require 'castaddon/index.rb'
+end
 
 # Modify the NodeArray and NodeChain lists to output correct
 # code when printed to a file.

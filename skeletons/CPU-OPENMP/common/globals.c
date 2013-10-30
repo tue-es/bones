@@ -1,5 +1,6 @@
 #include <omp.h>
 #include <stdlib.h>
+#include <stdio.h>
 
 #define BONES_MIN(a,b) ((a<b) ? a : b)
 #define BONES_MAX(a,b) ((a>b) ? a : b)

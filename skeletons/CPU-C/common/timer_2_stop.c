@@ -5,4 +5,4 @@
   }
   
   // Print the measurement data
-  printf(">>>\t\t (<algorithm_basename>): Execution time [kernel       ]: %.3lf ms \n", bones_timer2/((float)ITERS));
+  printf(">>>\t\t Execution time [kernel <algorithm_basename>]: %.3lf ms \n", bones_timer2/((float)ITERS));

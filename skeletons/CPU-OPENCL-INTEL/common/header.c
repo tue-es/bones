@@ -1,5 +1,8 @@
 #include <stdlib.h>
 
+void bones_timer_start();
+void bones_timer_stop();
+
 // Allocate a 128-byte aligned pointer
 void *bones_malloc_128(size_t bones_size) {
   char *bones_pointer;
