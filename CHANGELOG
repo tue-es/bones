@@ -1,4 +1,18 @@
 ###################
+### v1.4        ###
+###################
+
+A-Darwin:
+- Handles additional cases of copyin/out-to-outer-loop movement
+
+Skeletons:
+- Improved performance of the memory-copy thread ('scheduler')
+- Minor changes to skeletons mapping file
+
+Examples:
+- Added 6 examples benchmarks from the Rodinia suite
+
+###################
 ### v1.3        ###
 ###################
 

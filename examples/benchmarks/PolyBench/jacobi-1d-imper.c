@@ -43,8 +43,10 @@ int main(void) {
 	#pragma scop
 	for (t=0; t<TSTEPS; t++) {
 		#pragma species kernel 1:LARGE_N-2|neighbourhood(-1:1) -> 1:LARGE_N-2|element
-		for (i=1; i<LARGE_N-1; i++) {
-			B[i] = 0.33333 * (A[i-1] + A[i] + A[i+1]);
+		for (i=0; i<LARGE_N; i++) {
+			if (i > 0 && i < LARGE_N-1) {
+				B[i] = 0.33333 * (A[i-1] + A[i] + A[i+1]);
+			}
 		}
 		#pragma species endkernel jacobi-1d-imper-part1
 		#pragma species kernel 1:LARGE_N-2|element -> 1:LARGE_N-2|element

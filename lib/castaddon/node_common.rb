@@ -152,6 +152,12 @@ class C::Node
 		return (self.class == C::Or)
 	end
 	
+	# This method returns 'true' if the node is of the 'Equal'
+	# class. Otherwise, it returns 'false'.
+	def equality?
+		return (self.class == C::Equal)
+	end
+	
 	# This method returns 'true' if the node is of the 'Less'
 	# class. Otherwise, it returns 'false'.
 	def less?

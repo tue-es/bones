@@ -17,29 +17,12 @@
 // Filename...........applications/srad.c
 // Authors............Cedric Nugteren
 // Original authors...Rob Janiczek, Drew Gilliam, Lukasz Szafaryn
-// Last modified on...10-Aug-2012
+// Last modified on...05-Jun-2014
 //
-
-//########################################################################
-//### Includes
 //########################################################################
 
-#include <stdio.h>
-#include <stdlib.h>
-#include <math.h>
-
-//########################################################################
-//### Defines
-//########################################################################
-
-#define ROWS 128    // Number of ROWS in the domain
-#define COLS 128    // Number of COLS in the domain
-#define R1 0        // y1 position of the speckle
-#define R2 31       // y2 position of the speckle
-#define C1 0        // x1 position of the speckle
-#define C2 31       // x2 position of the speckle
-#define LAMBDA 0.5  // Lambda value
-#define NITER 2     // Number of iterations
+// Includes
+#include "common.h"
 
 //########################################################################
 //### Start of the main function
@@ -74,19 +57,19 @@ int main(void) {
 	printf("\n[srad] Initialising memory"); fflush(stdout);
 	int size = COLS*ROWS;
 	int size_roi = (R2-R1+1)*(C2-C1+1);
-	float* values     = (float*) malloc(sizeof(float)*size);
-	float* coefficent = (float*) malloc(sizeof(float)*size);
-	float* dN = (float*) malloc(sizeof(float)*size);
-	float* dS = (float*) malloc(sizeof(float)*size);
-	float* dW = (float*) malloc(sizeof(float)*size);
-	float* dE = (float*) malloc(sizeof(float)*size);
+	float values[ROWS][COLS];
+	float coefficent[ROWS][COLS];
+	float dN[ROWS][COLS];
+	float dS[ROWS][COLS];
+	float dW[ROWS][COLS];
+	float dE[ROWS][COLS];
 	
 	// Populate the input matrix
 	printf("\n[srad] Populating the input matrix with random values"); fflush(stdout);
 	for (i=0; i<ROWS; i++) {
 		for (j=0; j<COLS; j++) {
 			temp_value = rand()/(float)RAND_MAX;
-			values[i*COLS+j] = (float)exp(temp_value);
+			values[i][j] = (float)exp(temp_value);
 		}
 	}
 	
@@ -99,7 +82,7 @@ int main(void) {
 		sum2 = 0;
 		for (i=R1; i<=R2; i++) {
 			for (j=C1; j<=C2; j++) {
-				temp_value = values[i*COLS+j];
+				temp_value = values[i][j];
 				sum1 += temp_value;
 				sum2 += temp_value*temp_value;
 			}
@@ -108,61 +91,69 @@ int main(void) {
 		var_roi = (sum2/size_roi) - mean_roi*mean_roi;
 		q0s = var_roi / (mean_roi*mean_roi);
 		
-		// Iterate over the full image and compute
 		#pragma scop
+		// Iterate over the full image and computeΩ
 		for (i=0; i<ROWS; i++) {
 			for (j=0; j<COLS; j++) {
-				index = i*COLS+j;
-				current_value = values[index];
+
+				current_value = values[i][j];
+
+				// Temporary variables
+				float valN = 0;
+				float valS = 0;
+				float valW = 0;
+				float valE = 0;
 
 				// Compute the directional derivates (N,S,W,E)
-				if (i==0)      { dN[index] = 0; }
-				else           { dN[index] = values[(i-1)*COLS + j    ] - current_value; }
-				if (i==ROWS-1) { dS[index] = 0; }
-				else           { dS[index] = values[(i+1)*COLS + j    ] - current_value; }
-				if (j==0)      { dW[index] = 0; }
-				else           { dW[index] = values[i    *COLS + (j-1)] - current_value; }
-				if (j==COLS-1) { dE[index] = 0; }
-				else           { dE[index] = values[i    *COLS + (j+1)] - current_value; }
+				if (i > 0)      { valN = values[i-1][j  ] - current_value; }
+				if (i < ROWS-1) { valS = values[i+1][j  ] - current_value; }
+				if (j > 0)      { valW = values[i  ][j-1] - current_value; }
+				if (j < COLS-1) { valE = values[i  ][j+1] - current_value; }
 
 				// Compute the instantaneous coefficient of variation (qs) (equation 35)
-				G2 = (dN[index]*dN[index] + dS[index]*dS[index] + dW[index]*dW[index] + dE[index]*dE[index]) / (current_value*current_value);
-				L =  (dN[index]           + dS[index]           + dW[index]           + dE[index]          ) / (current_value              );
+				G2 = (valN*valN + valS*valS + valW*valW + valE*valE) / (current_value*current_value);
+				L =  (valN      + valS      + valW      + valE     ) / (current_value              );
 				temp_a = (0.5*G2)-((1.0/16.0)*(L*L));
 				temp_b = 1+(0.25*L);
 				qs = temp_a/(temp_b*temp_b);
 
+				// Write the data
+				dN[i][j] = valN;
+				dS[i][j] = valS;
+				dW[i][j] = valW;
+				dE[i][j] = valE;
+
 				// Set the diffusion coefficent (equation 33)
-				coefficent[index] = 1.0 / (1.0+( (qs-q0s)/(q0s*(1+q0s)) ));
+				float val = 1.0 / (1.0+( (qs-q0s)/(q0s*(1+q0s)) ));
 
 				// Saturate the diffusion coefficent
-				if (coefficent[index] < 0) {
-					coefficent[index] = 0;
+				if (val < 0) {
+					val = 0;
 				}
-				else if (coefficent[index] > 1) {
-					coefficent[index] = 1;
+				else if (val > 1) {
+					val = 1;
 				}
+				coefficent[i][j] = val;
 			}
 		}
-		
+
 		// Iterate over the full image again and compute the final values
 		for (i=0; i<ROWS; i++) {
 			for (j=0; j<COLS; j++) {
-				index = i*COLS+j;
 
 				// Calculate the diffusion coefficent
-				                 cN = coefficent[i    *COLS+j    ];
+				                 cN = coefficent[i  ][j  ];
 				if (i==ROWS-1) { cS = 0; }
-				else           { cS = coefficent[(i+1)*COLS+j    ]; }
-				                 cW = coefficent[i    *COLS+j    ];
+				else           { cS = coefficent[i+1][j  ]; }
+				                 cW = coefficent[i  ][j  ];
 				if (j==COLS-1) { cE = 0; }
-				else           { cE = coefficent[i    *COLS+(j+1)]; }
+				else           { cE = coefficent[i  ][j+1]; }
 
 				// Calculate the divergence (equation 58)
-				divergence = cN*dN[index] + cS*dS[index] + cW*dW[index] + cE*dE[index];
+				divergence = cN*dN[i][j] + cS*dS[i][j] + cW*dW[i][j] + cE*dE[i][j];
 
 				// Update the image accordingly (equation 61)
-				values[index] = values[index] + 0.25*LAMBDA*divergence;
+				values[i][j] = values[i][j] + 0.25*LAMBDA*divergence;
 			}
 		}
 		#pragma endscop
@@ -172,15 +163,15 @@ int main(void) {
 	printf("\n[srad] Printing the output matrix:\n\n"); fflush(stdout);
 	for (i=0; i<ROWS; i++) {
 		for (j=0; j<COLS; j++) {
-			printf("%.5f ", values[i*COLS+j]);
+			if (i == 5 && j == 5) {
+				printf("%.5f ", values[i][j]);
+			}
 		}
-		printf("\n");
+		//printf("\n");
 	}
 	
 	// Clean-up and exit
-	printf("\n[srad] Completed\n\n"); fflush(stdout);
-	free(values); free(coefficent);
-	free(dN); free(dS); free(dW); free(dE);
+	printf("\n[srad] Completed\n\n");
 	fflush(stdout);
 	return 0;
 }

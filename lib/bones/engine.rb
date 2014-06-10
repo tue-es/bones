@@ -91,7 +91,7 @@ module Bones
 				opt :measurements,    'Enable/disable timers',                                :short => 'm', :default => false
 				opt :verify,          'Verify correctness of the generated code',             :short => 'c', :default => false
 				opt :only_alg_number, 'Only generate code for the x-th species (99 -> all)',  :short => 'o', :type => Integer, :default => 99
-				opt :merge_factor,    'Thread merge factor, default is 1 (==disabled)',       :short => 'f', :type => Integer, :default => 1
+				opt :merge_factor,    'Thread merge factor, default is 1 (==disabled)',       :short => 'f', :type => Integer, :default => 0
 				opt :register_caching,'Enable register caching: 1:enabled (default), 0:disabled',      :short => 'r', :type => Integer, :default => 1
 				opt :zero_copy       ,'Enable OpenCL zero-copy: 1:enabled (default), 0:disabled',      :short => 'z', :type => Integer, :default => 1
 				opt :skeletons       ,'Enable non-default skeletons: 1:enabled (default), 0:disabled', :short => 's', :type => Integer, :default => 1

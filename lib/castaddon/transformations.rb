@@ -155,11 +155,13 @@ class C::Node
 	# Accepted inputs at this point: 2, 3 and 4 (CUDA/OPENCL)
 	# Also accepted input: 8 (CUDA), 9 (OPENCL) (to create an atomic version of the code)
 	# TODO: Complete the atomic support, e.g. add support for multiplications and ternary operators
-	def transform_reduction(input_variable,output_variable,id)
+	def transform_reduction(input_variable,shared_variable,id)
 		
 		# Pre-process assign-add type constructions
-		if self.stmts[0].expr.addassign?
-			self.stmts[0].expr.replace_with(C::Assign.parse(self.stmts[0].expr.lval.to_s+'='+self.stmts[0].expr.lval.to_s+'+'+self.stmts[0].expr.rval.to_s))
+		self.preorder do |node|
+			if node.addassign?
+				node.replace_with(C::Assign.parse(node.lval.to_s+'='+node.lval.to_s+'+'+node.rval.to_s))
+			end
 		end
 		
 		# Create atomic code
@@ -167,19 +169,21 @@ class C::Node
 			function_name = (id == 8) ? 'atomicAdd' : 'atomic_add'
 			self.preorder do |node|
 				if node.assign?
-					if node.lval.index? && node.lval.variable_name == output_variable.name
+					if node.lval.index? && node.lval.variable_name == shared_variable.name
 						if node.rval.add?
-							if node.rval.expr1.variable_name == output_variable.name
+							if node.rval.expr1.variable_name == shared_variable.name
 								node.replace_with(C::Call.parse(function_name+'(&'+node.rval.expr1.to_s+','+node.rval.expr2.to_s+')'))
-							elsif node.rval.expr2.variable_name == output_variable.name
+							elsif node.rval.expr2.variable_name == shared_variable.name
 								node.replace_with(C::Call.parse(function_name+'(&'+node.rval.expr2.to_s+','+node.rval.expr1.to_s+')'))
 							end
 						elsif node.rval.subtract?
-							if node.rval.expr1.variable_name == output_variable.name
+							if node.rval.expr1.variable_name == shared_variable.name
 								node.replace_with(C::Call.parse(function_name+'(&'+node.rval.expr1.to_s+',-'+node.rval.expr2.to_s+')'))
-							elsif node.rval.expr2.variable_name == output_variable.name
+							elsif node.rval.expr2.variable_name == shared_variable.name
 								node.replace_with(C::Call.parse(function_name+'(&'+node.rval.expr2.to_s+',-'+node.rval.expr1.to_s+')'))
 							end
+						elsif node.assign?
+							
 						else
 							raise_error('Unsupported atomic reduction operator: '+node.rval.type.inspect)
 						end
@@ -196,7 +200,7 @@ class C::Node
 				nodes.preorder do |node|
 					if (node.index?)
 						results[0] = nodes if node.variable_name == input_variable.name
-						results[1] = nodes if node.variable_name == output_variable.name
+						results[1] = nodes if node.variable_name == shared_variable.name
 					end
 				end
 			end

@@ -2,14 +2,16 @@
 
 # Recursive copy optimisations
 def recursive_copy_optimisations(nests,options)
-	perform_copy_optimisations1(nests,options)
-	perform_copy_optimisations2(nests,options)
-	nests.each do |nest|
-		children = get_children(nest)
-		recursive_copy_optimisations(children,options) if !children.empty?
+	2.times do
+		perform_copy_optimisations1(nests,options)
+		perform_copy_optimisations2(nests,options)
+		nests.each do |nest|
+			children = get_children(nest)
+			recursive_copy_optimisations(children,options) if !children.empty?
+		end
+		perform_copy_optimisations3(nests,options)
+		perform_copy_optimisations3(nests,options)
 	end
-	perform_copy_optimisations3(nests,options)
-	perform_copy_optimisations3(nests,options)
 end
 
 # First set of copyin/copyout optimisations (recursive)
@@ -134,8 +136,18 @@ def perform_copy_optimisations3(nests,options)
 				# Move copyins to outer loops
 				children.first.copyins.each do |copyin|
 					to_outer_loop = true
-					nest.outer_loops.map{ |l| l[:var] }.each do |var|
-						to_outer_loop = false if copyin.depends_on?(var)
+					nest.outer_loops.map{ |l| l[:var] }.each_with_index do |var,lindex|
+						if copyin.depends_on?(var)
+							to_outer_loop = false
+							if copyin.tD[0].a == var && copyin.tD[0].b == var
+								loopinfo = nest.outer_loops[lindex]
+								if loopinfo[:step] == "1"
+									copyin.tD[0].a = loopinfo[:min]
+									copyin.tD[0].b = loopinfo[:max]
+									to_outer_loop = true
+								end
+							end
+						end
 					end
 					children.drop(1).each do |child|
 						to_outer_loop = false if child.copyins.map{ |c| c.tN }.include?(copyin.tN)

@@ -47,12 +47,15 @@ module Adarwin
 			@all_loops = @code.get_all_loops()
 			@outer_loops = @code.get_direct_loops()
 			@inner_loops = @all_loops - @outer_loops
+
+			# Get all local variable declarations
+			@var_declarations = @code.get_var_declarations()
 			
 			# Process the read/write nodes in the loop body to obtain the array
 			# reference characterisations. The references also need to be aware of all
 			# loop data and of any if-statements in the loop body.
 			@references = @code.clone.get_accesses().map do |reference|
-				Reference.new(reference,@id,@inner_loops,@outer_loops,@verbose)
+				Reference.new(reference,@id,@inner_loops,@outer_loops,@var_declarations,@verbose)
 			end
 		
 			# Perform the dependence test. The result can be either true or false.
@@ -121,6 +124,19 @@ module Adarwin
 			# Else, set the species for the individual accesses.
 			read_names = (@reads.empty?) ? ['0:0|void'] : @reads.map{ |r| r.to_species }
 			write_names = (@writes.empty?) ? ['0:0|void'] : @writes.map{ |r| r.to_species }
+
+			# Remove a 'full' access pattern in case there is a same 'shared' write pattern
+			write_names.each do |write_name|
+				write_parts = write_name.split(PIPE)
+				if write_parts.last == 'shared'
+					read_names.each do |read_name|
+						read_parts = read_name.split(PIPE)
+						if read_parts.last == 'full' && read_parts.first == write_parts.first
+							read_names.delete(read_name)
+						end
+					end
+				end
+			end
 			
 			# Combine the descriptions (using Reference's +to_s+ method) into species
 			species_in = read_names.uniq.join(' '+WEDGE+' ')
@@ -174,6 +190,7 @@ module Adarwin
 			return false if @removed
 			return false if @has_dependences
 			return false if @species == ''
+			return false if (@writes) && (@writes.select{ |a| a.pattern == 'shared' }.length > 3)
 			only_full = (@reads) ? @reads.select{ |a| a.pattern != 'full' }.empty? : false
 			only_shared = (@writes) ? @writes.select{ |a| a.pattern != 'shared' }.empty? : false
 			return !(only_full && only_shared)

@@ -42,7 +42,7 @@ int main(void) {
 		#pragma species kernel 1:N-2,1:N-2|neighbourhood(-1:1,-1:1) -> 1:N-2,1:N-2|element
 		for (i=1; i<N-1; i++) {
 			for (j=1; j<N-1; j++) {
-				if (i < N-1 && j < N-1) {
+				if (i > 0 && j > 0 && i < N-1 && j < N-1) {
 					B[i][j] = 0.2 * (A[i][j] + A[i][j-1] + A[i][1+j] + A[1+i][j] + A[i-1][j]);
 				}
 			}

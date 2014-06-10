@@ -47,7 +47,7 @@ void bones_memcpy(void *dst, void *src, int size, enum cudaMemcpyKind direction,
 
 // Perform a task (CUDA memory copy)
 void bones_scheduler_copy(Task current_task) {
-  usleep(400);
+  //usleep(400);
   cudaMemcpyAsync(current_task.dst, current_task.src, current_task.size, current_task.direction, memory_stream);
   cudaStreamSynchronize(memory_stream);
 }
@@ -77,7 +77,7 @@ void* bones_scheduler(void* ptr) {
     
     // Perform the found task
     if (found_task != LARGE_INT) {
-      printf("Performing task %d, dl %d [scheduler]\n",found_task,tasks[found_task].deadline);
+      //printf("Performing task %d, dl %d [scheduler]\n",found_task,tasks[found_task].deadline);
       bones_scheduler_copy(tasks[found_task]);
       tasks[found_task].status = 2;
     }

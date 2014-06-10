@@ -146,6 +146,10 @@ class C::Node
 		elsif less?
 			results << ['',simplify("#{expr1}")+'='+simplify("(#{expr2})-1")]
 			
+		# Equal (==)
+		elsif equality?
+			results << ['','']#[simplify("#{expr1}"),simplify("(#{expr2})")]
+
 		# Unsupported conditions
 		else
 			raise_error("Unsupported if-condition: #{self.to_s}")
@@ -232,6 +236,19 @@ class C::Node
 		self.preorder do |node|
 			return node.expr.to_s if node.index? && !node.expr.index?
 		end
+	end
+	
+	# This method retrieves all variable declarations
+	def get_var_declarations()
+		vars = []
+		self.preorder do |node|
+			if node.declaration?
+				node.declarators.each do |decl|
+					vars << decl.name
+				end
+			end
+		end
+		return vars
 	end
 	
 	# This method retrieves the value from the current node. The value can be an

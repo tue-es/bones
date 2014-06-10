@@ -40,7 +40,7 @@ module Bones
 			@lists = {:host_name => [],:host_definition => [], :argument_name => [], :argument_definition => [], :golden_name => []}
 			@arrays = Variablelist.new()
 			@constants = Variablelist.new()
-			@merge_factor = nil
+			@merge_factor = 0
 			@register_caching_enabled = 1
 			@function_code = ''
 			@function_name = ''
@@ -146,12 +146,17 @@ module Bones
 				
 				# Perform transformations for reduction operations (conditionally do this)
 				if transformation[1,1].to_i >= 1
-					new_code = new_code.transform_reduction(@arrays.select(INPUT)[0],@arrays.select(OUTPUT)[0],transformation[1,1].to_i)
+					input = @arrays.select(INPUT)[0]
+					@arrays.select(OUTPUT).each do |output|
+						if output.species.shared?
+							new_code = new_code.transform_reduction(input,output,transformation[1,1].to_i)
+						end
+					end
 				end
 				
 				# Perform thread-merging (experimental)
 				# TODO: Solve the problem related to constants (e.g chunk/example1.c)
-				if @merge_factor == nil
+				if @merge_factor == 0
 					if transformation[0,1] == '4' && @hash[:parallelism].to_i >= 1024*1024
 						@merge_factor = 4
 					else

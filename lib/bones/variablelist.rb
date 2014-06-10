@@ -15,7 +15,7 @@ module Bones
 		def select(direction)
 			array = Variablelist.new()
 			self.each do |element|
-				array.push(element) if ((direction == INPUT) && (element.input?)) || ((direction == OUTPUT) && (element.output?))
+				array.push(element) if ((direction == INPUT) && (element.input?)) || ((direction == OUTPUT) && (element.output?)) || (element.direction == INOUT)
 			end
 			return array
 		end

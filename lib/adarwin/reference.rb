@@ -28,7 +28,7 @@ module Adarwin
 		# * It constructs the sets of loops (all,inner,outer) for this reference
 		# * It computes the bounds based on loop data and on if-statements
 		# * It computes the domain (D), number of elements (E), and step (S)
-		def initialize(reference,id,inner_loops,outer_loops,verbose)
+		def initialize(reference,id,inner_loops,outer_loops,var_declarations,verbose)
 			@id = id
 			
 			# Initialise the 5-tuple (already fill in N and A)
@@ -44,6 +44,9 @@ module Adarwin
 			@all_loops = reference[:loop_data]
 			@inner_loops = inner_loops & @all_loops
 			@outer_loops = outer_loops
+
+			# Set the list of all local variables
+			@var_declarations = var_declarations
 			
 			# Set the indices of the array reference (e.g. 2*i+4). The size of this
 			# array is equal to the number of dimensions of the array.
@@ -56,11 +59,11 @@ module Adarwin
 			@all_loops.each do |loop_data|
 				conditions = [loop_data[:min],loop_data[:max]]
 				reference[:if_statements].each do |if_statement|
-					condition_if = if_statement.map{ |c| solve(c,loop_data[:var],loop_vars) }
-					conditions = [
-						max(conditions[0],condition_if[0]),
-						min(conditions[1],condition_if[1])
-					]
+					if !array_includes_local_vars(if_statement,loop_vars)
+						condition_if = if_statement.map{ |c| solve(c,loop_data[:var],loop_vars) }
+						conditions[0] = max(conditions[0],condition_if[0])
+						conditions[1] = min(conditions[1],condition_if[1])
+					end
 				end
 				@bounds << { :var => loop_data[:var], :min => conditions[0], :max => conditions[1] }
 			end
@@ -103,6 +106,47 @@ module Adarwin
 					@tS[index] = '0'
 				end
 			end
+
+			# Check for local variables in the domain. If they exist ask the user to fill
+			# in the bounds.
+			# TODO: Make this a command-line question asked to the user. For now, several
+			# known values are simply put here - for ease of automated testing.
+			@tD.each do |bounds|
+
+				# Bounds are equal (e.g. [t:t])
+				if bounds.a == bounds.b && string_includes_local_vars(bounds.a)
+
+					# Default (assume 'char')
+					a = '0'
+					b = '255'
+
+					# Overrides (see notice above)
+					b = 'NUM_CLUSTERS-1' if bounds.a == 'cluster_index'
+					b = 'no_of_nodes-1' if bounds.b == 'id'
+
+					# Output a warning
+					puts WARNING+"Bounds of '#{bounds.a}' variable unknown, assuming #{a}:#{b}"
+					bounds.a = a
+					bounds.b = b
+
+				# Not equal but both problematic
+				elsif string_includes_local_vars(bounds.a) && string_includes_local_vars(bounds.b)
+
+					# Default (assume 'char')
+					a = '0'
+					b = '255'
+
+					# Overrides (see notice above)
+					b = 'no_of_nodes-1' if bounds.a == 'val2'
+
+					# Output a warning
+					puts WARNING+"Bounds of '#{bounds.a}' and '#{bounds.b}' variables unknown, assuming #{a}:#{b}"
+					bounds.a = a
+					bounds.b = b
+
+				end
+			end
+
 			
 			# Print the result
 			puts MESSAGE+"Found: #{to_arc}" if verbose
@@ -252,6 +296,27 @@ module Adarwin
 					if node.variable?
 						return true if (node.name == var)
 					end
+				end
+			end
+			return false
+		end
+
+		# Method to find if local variables are included
+		def array_includes_local_vars(array, loop_vars)
+			vars = @var_declarations - loop_vars
+			array.each do |string|
+				vars.each do |decl|
+					if string =~ /\b#{decl}\b/
+						return true
+					end
+				end
+			end
+			return false
+		end
+		def string_includes_local_vars(string)
+			@var_declarations.each do |decl|
+				if string =~ /\b#{decl}\b/
+					return true
 				end
 			end
 			return false
