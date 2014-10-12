@@ -37,7 +37,7 @@ TARGET = TARGETS[0]
 MEASUREMENTS = true
 VERIFICATION = false
 MEMORY_OPTIMISATIONS = true
-ADARWIN_OPTIONS = MEMORY_OPTIMISATIONS ? '-r -f -b -l' : ''
+ADARWIN_OPTIONS_BONES = MEMORY_OPTIMISATIONS ? '-r -f -b -l' : ''
 
 # Small helper function to display text on screen
 def display(text)
@@ -62,7 +62,7 @@ namespace :examples do
 		bones_options = (MEASUREMENTS ? '-m ' : '') + (VERIFICATION ? '-c ' : '')
 		args.with_defaults(:file => EXAMPLES)
 		Dir[args.file].sort.each do |file|
-			sh "bin/adarwin -a #{file} #{ADARWIN_OPTIONS}"
+			sh "bin/adarwin -a #{file} #{ADARWIN_OPTIONS_BONES}"
 			split = file.split('.')
 			file = split[0]+'_species'+'.'+split[1]
 			sh "bin/bones -a #{file} -t #{TARGET} #{bones_options}"
@@ -100,15 +100,15 @@ namespace :examples do
 		end
 	end
 
-	# Helper function to compile code
-	#def compile(file,target)
-		# (system-specific, to be filled in by the user)
-	#end
+	# Helper function to compile code (NOTE: this task is a stub)
+	def compile(file,target)
+		puts "[Rake] ### Compiling the code is system-specific, to be filled in..."
+	end
 
-	# Helper function to execute code
-	#def execute(file,target)
-		# (system-specific, to be filled in by the user)
-	#end
+	# Helper function to execute code (NOTE: this task is a stub)
+	def execute(file,target)
+		puts "[Rake] ### Executing the code is system-specific, to be filled in..."
+	end
 	
 end
 task :examples => ['examples:generate']
