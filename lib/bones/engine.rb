@@ -98,9 +98,9 @@ module Bones
 			end
 			Trollop::die 'no input file supplied (use: --application)'              if !@options[:application_given]
 			Trollop::die 'no target supplied (use: --target)'                       if !@options[:target_given]
-			Trollop::die 'input file "'+@options[:application]+'"does not exist '   if !File.exists?(@options[:application])
+			Trollop::die 'input file "'+@options[:application]+'" does not exist'   if !File.exists?(@options[:application])
 			Trollop::die 'target not supported, supported targets are: '+pp_targets if !targets.include?(@options[:target].upcase)
-			@options[:name] = @options[:application].split('/').last.split('.').first
+			@options[:name] = File.basename(@options[:application], ".*")
 			@options[:target] = @options[:target].upcase
 			
 			# Extension for the host files corresponding to the target.

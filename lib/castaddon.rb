@@ -12,12 +12,10 @@ require 'cast'
 # for Bones and A-Darwin.
 require 'castaddon/node_common.rb'
 require 'castaddon/node_adarwin.rb'
-if File.exists?('lib/bones.rb')
-	require 'castaddon/node_bones.rb'
-	require 'castaddon/transformations.rb'
-	require 'castaddon/type.rb'
-	require 'castaddon/index.rb'
-end
+require 'castaddon/node_bones.rb'
+require 'castaddon/transformations.rb'
+require 'castaddon/type.rb'
+require 'castaddon/index.rb'
 
 # Modify the NodeArray and NodeChain lists to output correct
 # code when printed to a file.

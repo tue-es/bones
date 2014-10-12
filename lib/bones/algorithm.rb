@@ -64,6 +64,7 @@ module Bones
 					@function_name = function.name
 				end
 			end
+			raise_error("Incorrect code found in body of #{@name}, something wrong with the classification?") if @function_code == ""
 		end
 		
 		# This method performs the code transformations according
@@ -164,7 +165,7 @@ module Bones
 					end
 				end
 				if @merge_factor > 1
-					puts @hash[:parallelism]
+					#puts @hash[:parallelism]
 					if new_code.has_conditional_statements?
 						puts MESSAGE+'Not coarsening ('+@merge_factor.to_s+'x) because of conditional statements in kernel body.'
 					# TODO: Fix this temporary hack for multiple loops with mismatching bounds
@@ -410,7 +411,11 @@ module Bones
 			
 			DIRECTIONS.each do |direction|
 				species = @species.structures(direction)
-				arrays = @arrays.select(direction)
+				if direction == INPUT && @species.shared?
+					arrays = @arrays.inputs_only
+				else
+					arrays = @arrays.select(direction)
+				end
 				if !arrays.empty?
 					
 					# Check if the amount of input/ouput arrays is equal to the amount of input/output species
@@ -443,6 +448,11 @@ module Bones
 							arrays.each do |free_array|
 								array = free_array if structure.name == free_array.name
 							end
+						end
+
+						# Still haven't found anything, raise an error
+						if !array
+							raise_error("Could not find a matching array in C-code for a species with name '#{species.first.name}'")
 						end
 						
 						# Process the assignment
