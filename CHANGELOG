@@ -1,3 +1,22 @@
+
+###################
+### v1.5        ###
+###################
+
+Bug fixes:
+- Adjusted the examples to include pragma scop and named species (to make them work again with Bones)
+- Fixed a bug where input/output variables of species with 'shared' where not properly handled
+- Removed warning from Rakefile
+- Fixed a bug requiring Bones to be executed from the folder containing the 'lib' directory
+- Fixed a filename issue on non-Unix systems
+- The pre-processor now understands block-comments
+
+Various:
+- Added .gitignore file
+- Improved clarity of Rakefile stub targets
+- Improved error handling of incorrect names
+- Improved error handling of incorrect species
+
 ###################
 ### v1.4        ###
 ###################
