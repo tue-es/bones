@@ -10,7 +10,7 @@
 // == File information
 // Filename...........dependences/example05.c
 // Author.............Cedric Nugteren
-// Last modified on...07-May-2013
+// Last modified on...11-October-2014
 //
 
 #include <stdio.h>
@@ -31,9 +31,11 @@ int main(void) {
 	}
 	
 	// Perform the computation
+	#pragma scop
 	for (i=0; i<N; i++) { // Read-write dependence
 		D[2*i+6][2*i+6] = D[8*i+1][3*i+1];
 	}
+	#pragma endscop
 	
 	// Clean-up and exit the function
 	fflush(stdout);

@@ -10,7 +10,7 @@
 // == File information
 // Filename...........fusion/example04.c
 // Author.............Cedric Nugteren
-// Last modified on...02-Oct-2013
+// Last modified on...11-October-2014
 //
 
 #include <stdio.h>
@@ -36,7 +36,8 @@ int main(void) {
 	}
 	
 	// Perform the computation (y := A'Ax)
-	#pragma species kernel 0:4095,0:4095|chunk(0:0,0:4095) ^ 0:4095|full -> 0:4095|element
+	#pragma scop
+	#pragma species kernel A[0:4095,0:4095]|chunk(0:0,0:4095) ^ x[0:4095]|full -> tmp[0:4095]|element
 	for (i=0; i<4096; i++) {
 		tmp[i] = 0;
 		for (j=0; j<4096; j++) {
@@ -44,7 +45,7 @@ int main(void) {
 		}
 	}
 	#pragma species endkernel atax-part1
-	#pragma species kernel 0:4095,0:4095|chunk(0:4095,0:0) ^ 0:4095|full -> 0:4095|element
+	#pragma species kernel A[0:4095,0:4095]|chunk(0:4095,0:0) ^ tmp[0:4095]|full -> y[0:4095]|element
 	for (j=0; j<4096; j++) {
 		y[j] = 0;
 		for (i=0; i<4096; i++) {
@@ -52,6 +53,7 @@ int main(void) {
 		}
 	}
 	#pragma species endkernel atax-part2
+	#pragma endscop
 	
 	// Clean-up and exit the function
 	fflush(stdout);

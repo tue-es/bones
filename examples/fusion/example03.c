@@ -10,7 +10,7 @@
 // == File information
 // Filename...........fusion/example03.c
 // Author.............Cedric Nugteren
-// Last modified on...02-Oct-2013
+// Last modified on...11-October-2014
 //
 
 #include <stdio.h>
@@ -37,6 +37,7 @@ int main(void) {
 	for (i=0; i<2048; i++) { for (j=0; j<2048; j++) { D[i][j] = ((float) i*(j+2)) / 2048; } }
 	
 	// Perform the computation (E := alpha*A*B*C + beta*D)
+	#pragma scop
 	#pragma species copyin A[0:2047,0:2047]|0 ^ B[0:2047,0:2047]|0 ^ D[0:2047,0:2047]|1 ^ C[0:2047,0:2047]|1
 	#pragma species sync 0
 	#pragma species kernel A[0:2047,0:2047]|chunk(0:0,0:2047) ^ B[0:2047,0:2047]|chunk(0:2047,0:0) -> tmp[0:2047,0:2047]|element
@@ -63,6 +64,7 @@ int main(void) {
 	#pragma species endkernel example03-part2
 	#pragma species copyout D[0:2047,0:2047]|2
 	#pragma species sync 2
+	#pragma endscop
 	
 	// Clean-up and exit the function
 	fflush(stdout);

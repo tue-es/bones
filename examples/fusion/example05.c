@@ -10,7 +10,7 @@
 // == File information
 // Filename...........fusion/example05.c
 // Author.............Cedric Nugteren
-// Last modified on...08-October-2013
+// Last modified on...11-October-2014
 //
 
 #include <stdio.h>
@@ -32,6 +32,7 @@ int main(void) {
 	}
 	
 	// Perform the computation
+	#pragma scop
 	#pragma species kernel A[0:2047,0:1023]|element -> B[0:2047,0:1023]|element
 	for(i=0;i<2048;i++) {
 		for(j=0;j<1024;j++) {
@@ -46,6 +47,7 @@ int main(void) {
 		}
 	}
 	#pragma species endkernel example05-part2
+	#pragma endscop
 	
 	// Clean-up and exit the function
 	fflush(stdout);

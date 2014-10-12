@@ -10,7 +10,7 @@
 // == File information
 // Filename...........element/example12.c
 // Author.............Cedric Nugteren
-// Last modified on...06-Aug-2012
+// Last modified on...10-October-2014
 //
 
 #include <stdio.h>
@@ -48,9 +48,11 @@ void computation(int* A, int* B, int constant) {
 	int i;
 	
 	// Perform the computation
-	#pragma species kernel 0:127|element -> 0:127|element
+	#pragma scop
+	#pragma species kernel A[0:127]|element -> B[0:127]|element
 	for(i=0;i<128;i++) {
 		B[i] = 2*A[i] + constant;
 	}
 	#pragma species endkernel example12
+	#pragma endscop
 }

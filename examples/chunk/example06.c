@@ -10,7 +10,7 @@
 // == File information
 // Filename...........chunk/example06.c
 // Author.............Cedric Nugteren
-// Last modified on...07-May-2013
+// Last modified on...10-October-2014
 //
 
 #include <stdio.h>
@@ -31,12 +31,14 @@ int main(void) {
 	}
 	
 	// Perform the computation
+	#pragma scop
 	#pragma species kernel A[2:N-1]|chunk(0:1) -> B[2:N-1]|chunk(0:1)
 	for (i=2; i<N-1; i=i+2) {
 		B[i] = A[i];
 		B[i+1] = A[i+1];
 	}
 	#pragma species endkernel example06
+	#pragma endscop
 	
 	// Clean-up and exit the function
 	fflush(stdout);

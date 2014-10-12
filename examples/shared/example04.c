@@ -8,16 +8,16 @@
 // Web address........http://parse.ele.tue.nl/bones/
 //
 // == File information
-// Filename...........shared/example4.c
+// Filename...........shared/example04.c
 // Author.............Cedric Nugteren
-// Last modified on...16-April-2012
+// Last modified on...10-October-2014
 //
 
 #include <stdio.h>
 #include <stdlib.h>
 #define SIZE 1024*1024
 
-// This is 'example4', demonstrating a basic 256-bin histogram computation
+// This is 'example04', demonstrating a basic 256-bin histogram computation
 int main(void) {
 	int i;
 	unsigned char index;
@@ -37,12 +37,14 @@ int main(void) {
 	}
 	
 	// Perform the computation
-	#pragma species kernel 0:SIZE-1|element -> 0:255|shared
+	#pragma scop
+	#pragma species kernel A[0:SIZE-1]|element -> B[0:255]|shared
 	for(i=0;i<SIZE;i++) {
 		index = A[i];
 		B[index]++;
 	}
 	#pragma species endkernel example4
+	#pragma endscop
 	
 	// Clean-up and exit the function
 	free(A);

@@ -8,15 +8,15 @@
 // Web address........http://parse.ele.tue.nl/bones/
 //
 // == File information
-// Filename...........element/example6.c
+// Filename...........element/example06.c
 // Author.............Cedric Nugteren
-// Last modified on...16-April-2012
+// Last modified on...10-October-2014
 //
 
 #include <stdio.h>
 #include <stdlib.h>
 
-// This is 'example6', demonstrating dynamically sized arrays, a dynamically sized kernel, and a classification including variables
+// This is 'example06', demonstrating dynamically sized arrays, a dynamically sized kernel, and a classification including variables
 int main(void) {
 	int i;
 	int N = 2048*2048;
@@ -31,11 +31,13 @@ int main(void) {
 	}
 	
 	// Perform the computation
-	#pragma species kernel 0:N-1|element -> 0:N-1|element
+	#pragma scop
+	#pragma species kernel A[0:N-1]|element -> B[0:N-1]|element
 	for(i=0;i<N;i++) {
 		B[i] = A[i] + 3;
 	}
 	#pragma species endkernel example6
+	#pragma endscop
 	
 	// Clean-up and exit the function
 	free(A);

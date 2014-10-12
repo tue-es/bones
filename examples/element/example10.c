@@ -10,7 +10,7 @@
 // == File information
 // Filename...........element/example10.c
 // Author.............Cedric Nugteren
-// Last modified on...16-April-2012
+// Last modified on...10-October-2014
 //
 
 #include <stdio.h>
@@ -35,13 +35,15 @@ int main(void) {
 	}
 	
 	// Perform the computation
-	#pragma species kernel 2:N-1,1:M-1|element -> 2:N-1,1:M-1|element
+	#pragma scop
+	#pragma species kernel A[2:N-1,1:M-1]|element -> B[2:N-1,1:M-1]|element
 	for(i=2;i<N;i++) {
 		for(j=1;j<M;j++) {
 			B[i][j] = A[i][j];
 		}
 	}
 	#pragma species endkernel
+	#pragma endscop
 	
 	// Clean-up and exit the function
 	fflush(stdout);

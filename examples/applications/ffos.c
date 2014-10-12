@@ -15,7 +15,7 @@
 // == File information
 // Filename...........applications/ffos.c
 // Author.............Cedric Nugteren
-// Last modified on...22-May-2012
+// Last modified on...11-October-2014
 //
 
 //########################################################################
@@ -104,13 +104,15 @@ int main(void) {
 	//########################################################################
 	if (messages >= 1) { printf("### PART1: Histogramming.\n"); fflush(stdout); }
 	
-	#pragma species kernel 0:height-1,0:width-1|element -> 0:255|shared
+	#pragma scop
+	#pragma species kernel image0[0:height-1,0:width-1]|element -> hist[0:255]|shared
 	for (h=0;h<height;h++) {
 		for (w=0;w<width;w++) {
 			hist[image0[h][w]] = hist[image0[h][w]] + 1;
 		}
 	}
 	#pragma species endkernel histogram
+	#pragma endscop
 	
 	//########################################################################
 	//### Between class variance (CPU)
@@ -168,14 +170,22 @@ int main(void) {
 	//########################################################################
 	if (messages >= 1) { printf("### PART4: Binarization with treshold at %d.\n",threshold); fflush(stdout); }
 	
-	#pragma species kernel 0:height-1,0:width-1|element -> 0:height-1,0:width-1|element
+	unsigned char val;
+	#pragma scop
+	#pragma species kernel image0[0:height-1,0:width-1]|element -> image1[0:height-1,0:width-1]|element
 	for (h=0;h<height;h++) {
 		for (w=0;w<width;w++) {
-			if (image0[h][w] > threshold) { image1[h][w] = 1; }
-			else {                          image1[h][w] = 0; }
+			if (image0[h][w] > threshold) {
+				val = 1;
+			}
+			else {
+				val = 0;
+			}
+			image1[h][w] = val;
 		}
 	}
 	#pragma species endkernel threshold
+	#pragma endscop
 	
 	//########################################################################
 	//### PART5: Erosion 7x7 (accelerated)
@@ -183,7 +193,8 @@ int main(void) {
 	if (messages >= 1) { printf("### PART5: Perform the erode kernel.\n"); fflush(stdout); }
 	
 	int condition;
-	#pragma species kernel 7:height-8,7:width-8|neighbourhood(-3:3,-3:3) -> 0:height-1,0:width-1|element
+	#pragma scop
+	#pragma species kernel image1[7:height-8,7:width-8]|neighbourhood(-3:3,-3:3) -> image2[0:height-1,0:width-1]|element
 	for (h=0;h<height;h++) {
 		for (w=0;w<width;w++) {
 			if (w >= 7 && h >= 7 && w <= width-7 && h <= height-7) {
@@ -208,6 +219,7 @@ int main(void) {
 		}
 	}
 	#pragma species endkernel erosion
+	#pragma endscop
 	
 	//########################################################################
 	//### PART6: 1D erosion(7) synthetic example (accelerated)
@@ -251,7 +263,8 @@ int main(void) {
 	if (messages >= 1) { printf("### PART7: Starting the Y-projection algorithm.\n"); fflush(stdout); }
 	
 	int result_yp;
-	#pragma species kernel 0:height-1,0:width-1|chunk(0:height-1,0:0) -> 0:width-1|element
+	#pragma scop
+	#pragma species kernel image2[0:height-1,0:width-1]|chunk(0:height-1,0:0) -> Yvector[0:width-1]|element
 	for (w=0;w<width;w++) {
 		result_yp = 0;
 		for (h=0;h<height;h++) {
@@ -262,6 +275,7 @@ int main(void) {
 		Yvector[w] = result_yp;
 	}
 	#pragma species endkernel y_projection
+	#pragma endscop
 	
 	//########################################################################
 	//### PART8: X-projection (accelerated)
@@ -269,7 +283,8 @@ int main(void) {
 	if (messages >= 1) { printf("### PART8: Starting the X-projection algorithm.\n"); fflush(stdout); }
 	
 	int result_xp;
-	#pragma species kernel 0:height-1,0:width-1|chunk(0:0,0:width-1) -> 0:height-1|element
+	#pragma scop
+	#pragma species kernel image2[0:height-1,0:width-1]|chunk(0:0,0:width-1) -> Xvector[0:height-1]|element
 	for (h=0;h<height;h++) {
 		result_xp = 0;
 		for (w=0;w<width;w++) {
@@ -280,6 +295,7 @@ int main(void) {
 		Xvector[h] = result_xp;
 	}
 	#pragma species endkernel x_projection
+	#pragma endscop
 	
 	//########################################################################
 	//### Search for the centers of the projection vectors (CPU)

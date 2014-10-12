@@ -8,16 +8,16 @@
 // Web address........http://parse.ele.tue.nl/bones/
 //
 // == File information
-// Filename...........neighbourhood/example1.c
+// Filename...........neighbourhood/example01.c
 // Author.............Cedric Nugteren
-// Last modified on...16-April-2012
+// Last modified on...10-October-2014
 //
 
 #include <stdio.h>
 #define SIZE 60000
 #define NB 2
 
-// This is 'example1', demonstrating a basic 1D neighbourhood-based computation whose size is set by a define
+// This is 'example01', demonstrating a basic 1D neighbourhood-based computation whose size is set by a define
 int main(void) {
 	int i,n;
 	float result = 0;
@@ -32,7 +32,8 @@ int main(void) {
 	}
 	
 	// Perform the computation
-	#pragma species kernel 0:SIZE-1|neighbourhood(-NB:NB) -> 0:SIZE-1|element
+	#pragma scop
+	#pragma species kernel A[0:SIZE-1]|neighbourhood(-NB:NB) -> B[0:SIZE-1]|element
 	for(i=0;i<SIZE;i++) {
 		if (i >= NB && i < SIZE-NB) {
 			result = 0;
@@ -46,6 +47,7 @@ int main(void) {
 		}
 	}
 	#pragma species endkernel example1
+	#pragma endscop
 	
 	// Clean-up and exit the function
 	fflush(stdout);

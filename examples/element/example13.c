@@ -10,7 +10,7 @@
 // == File information
 // Filename...........element/example13.c
 // Author.............Cedric Nugteren
-// Last modified on...07-May-2013
+// Last modified on...10-October-2014
 //
 
 #include <stdio.h>
@@ -39,6 +39,7 @@ int main(void) {
 	}
 	
 	// Perform the computation
+	#pragma scop
 	#pragma species kernel C[0:N-1]|element -> B[11:N-1]|element ^ A[0:5]|element
 	for (i=0; i<N; i++) {
 		if (i > 10) {
@@ -65,6 +66,7 @@ int main(void) {
 		}
 	}
 	#pragma species endkernel example13_k3
+	#pragma endscop
 	
 	// Clean-up and exit the function
 	fflush(stdout);

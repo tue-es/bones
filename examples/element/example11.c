@@ -10,7 +10,7 @@
 // == File information
 // Filename...........element/example11.c
 // Author.............Cedric Nugteren
-// Last modified on...16-April-2012
+// Last modified on...10-October-2014
 //
 
 #include <stdio.h>
@@ -32,13 +32,15 @@ int main(void) {
 	}
 	
 	// Perform the computation
+	#pragma scop
 	for(i=0;i<128;i++) {
-		#pragma species kernel i:i,i:127|element -> i:i,i:127|element
+		#pragma species kernel A[i:i,i:127]|element -> B[i:i,i:127]|element
 		for(j=i;j<128;j++) {
 			B[i][j] = 2*A[i][j];
 		}
 		#pragma species endkernel example11
 	}
+	#pragma endscop
 	
 	// Clean-up and exit the function
 	fflush(stdout);

@@ -8,9 +8,9 @@
 // Web address........http://parse.ele.tue.nl/bones/
 //
 // == File information
-// Filename...........neighbourhood/example3.c
+// Filename...........neighbourhood/example03.c
 // Author.............Cedric Nugteren
-// Last modified on...16-April-2012
+// Last modified on...10-October-2014
 //
 
 #include <stdio.h>
@@ -23,7 +23,7 @@
 float ** alloc_2D(int size1, int size2);
 void free_2D(float ** array_2D);
 
-// This is 'example3', demonstrating a neighbourhood with only some values used (a cross) and a math.h square root function call
+// This is 'example03', demonstrating a neighbourhood with only some values used (a cross) and a math.h square root function call
 int main(void) {
 	int i,j;
 	int sizea = A;
@@ -41,7 +41,8 @@ int main(void) {
 	}
 	
 	// Perform the computation
-	#pragma species kernel 0:sizea-1,0:sizeb-1|neighbourhood(-1:1,-1:1) -> 0:sizea-1,0:sizeb-1|element
+	#pragma scop
+	#pragma species kernel in[0:sizea-1,0:sizeb-1]|neighbourhood(-1:1,-1:1) -> out[0:sizea-1,0:sizeb-1]|element
 	for(i=0;i<sizea;i++) {
 		for(j=0;j<sizeb;j++) {
 			if (i >= 1 && j >= 1 && i < (sizea-1) && j < (sizeb-1)) {
@@ -55,6 +56,7 @@ int main(void) {
 		}
 	}
 	#pragma species endkernel example3
+	#pragma endscop
 	
 	// Clean-up and exit the function
 	free_2D(in);

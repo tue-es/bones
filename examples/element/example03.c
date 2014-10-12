@@ -8,18 +8,18 @@
 // Web address........http://parse.ele.tue.nl/bones/
 //
 // == File information
-// Filename...........element/example3.c
+// Filename...........element/example03.c
 // Author.............Cedric Nugteren
-// Last modified on...16-April-2012
+// Last modified on...10-October-2014
 //
 
 #include <stdio.h>
-#define N1 2//8
-#define N2 4//16
-#define N3 8//32
-#define N4 16//64
+#define N1 2
+#define N2 4
+#define N3 8
+#define N4 16
 
-// This is 'example3', demonstrating a 4D array and defines for array sizes
+// This is 'example03', demonstrating a 4D array and defines for array sizes
 int main(void) {
 	int i,j,k,l;
 	
@@ -39,7 +39,8 @@ int main(void) {
 	}
 	
 	// Perform the computation
-	#pragma species kernel 0:N1-1,0:N2-1,0:N3-1,0:N4-1|element -> 0:N1-1,0:N2-1,0:N3-1,0:N4-1|element
+	#pragma scop
+	#pragma species kernel A[0:N1-1,0:N2-1,0:N3-1,0:N4-1]|element -> B[0:N1-1,0:N2-1,0:N3-1,0:N4-1]|element
 	for(i=0;i<N1;i++) {
 		for(j=0;j<N2;j++) {
 			for(k=0;k<N3;k++) {
@@ -50,6 +51,7 @@ int main(void) {
 		}
 	}
 	#pragma species endkernel example3
+	#pragma endscop
 	
 	// Clean-up and exit the function
 	fflush(stdout);

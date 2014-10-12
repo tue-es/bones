@@ -8,14 +8,14 @@
 // Web address........http://parse.ele.tue.nl/bones/
 //
 // == File information
-// Filename...........element/example2.c
+// Filename...........element/example02.c
 // Author.............Cedric Nugteren
-// Last modified on...06-May-2013
+// Last modified on...10-October-2014
 //
 
 #include <stdio.h>
 
-// This is 'example2', demonstrating unordered element-wise computation
+// This is 'example02', demonstrating unordered element-wise computation
 int main(void) {
 	int i,j;
 	
@@ -31,13 +31,15 @@ int main(void) {
 	}
 	
 	// Perform the computation
-	#pragma species kernel 0:3,0:7|element -> 0:3,0:7|element
+	#pragma scop
+	#pragma species kernel A[0:3,0:7]|element -> B[0:3,0:7]|element
 	for(i=0;i<4;i++) {
 		for(j=0;j<8;j++) {
 			B[i][j] = A[i][7-j];
 		}
 	}
 	#pragma species endkernel example2
+	#pragma endscop
 	
 	// Clean-up and exit the function
 	fflush(stdout);

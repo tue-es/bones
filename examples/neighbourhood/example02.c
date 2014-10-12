@@ -8,16 +8,16 @@
 // Web address........http://parse.ele.tue.nl/bones/
 //
 // == File information
-// Filename...........neighbourhood/example2.c
+// Filename...........neighbourhood/example02.c
 // Author.............Cedric Nugteren
-// Last modified on...16-April-2012
+// Last modified on...10-October-2014
 //
 
 #include <stdio.h>
 #define A 256
 #define B 512
 
-// This is 'example2', demonstrating a 2D array, a 2D neighbourhood and a for-loop-less notation of the neighbourhood accesses
+// This is 'example02', demonstrating a 2D array, a 2D neighbourhood and a for-loop-less notation of the neighbourhood accesses
 int main(void) {
 	int i,j;
 	
@@ -33,7 +33,8 @@ int main(void) {
 	}
 	
 	// Perform the computation
-	#pragma species kernel 0:255,0:511|neighbourhood(-1:1,-1:1) -> 0:255,0:511|element
+	#pragma scop
+	#pragma species kernel in[0:255,0:511]|neighbourhood(-1:1,-1:1) -> out[0:255,0:511]|element
 	for(i=0;i<A;i++) {
 		for(j=0;j<B;j++) {
 			if (i >= 1 && j >= 1 && i < (A-1) && j < (B-1)) {
@@ -47,6 +48,7 @@ int main(void) {
 		}
 	}
 	#pragma species endkernel example2
+	#pragma endscop
 	
 	// Clean-up and exit the function
 	fflush(stdout);

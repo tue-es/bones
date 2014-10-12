@@ -8,15 +8,15 @@
 // Web address........http://parse.ele.tue.nl/bones/
 //
 // == File information
-// Filename...........element/example5.c
+// Filename...........element/example05.c
 // Author.............Cedric Nugteren
-// Last modified on...16-April-2012
+// Last modified on...10-October-2014
 //
 
 #include <stdio.h>
 #define SIZE 2311
 
-// This is 'example5', demonstrating multiple inputs and outputs of different types
+// This is 'example05', demonstrating multiple inputs and outputs of different types
 int main(void) {
 	int i;
 	float result = 0;
@@ -36,7 +36,8 @@ int main(void) {
 	}
 	
 	// Perform the computation
-	#pragma species kernel 0:SIZE-1|element ^ 0:SIZE-1|element ^ 0:SIZE-1|element -> 0:SIZE-1|element ^ 0:SIZE-1|element
+	#pragma scop
+	#pragma species kernel in3[0:SIZE-1]|element ^ in2[0:SIZE-1]|element ^ in1[0:SIZE-1]|element -> out1[0:SIZE-1]|element ^ out2[0:SIZE-1]|element
 	for(i=0;i<SIZE;i++) {
 		if (in3[i] > 50) {
 			result = in2[i] / in1[i];
@@ -48,6 +49,7 @@ int main(void) {
 		out2[i] = in3[i]/255.0;
 	}
 	#pragma species endkernel example5
+	#pragma endscop
 	
 	// Clean-up and exit the function
 	fflush(stdout);

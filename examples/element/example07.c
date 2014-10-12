@@ -8,14 +8,14 @@
 // Web address........http://parse.ele.tue.nl/bones/
 //
 // == File information
-// Filename...........element/example7.c
+// Filename...........element/example07.c
 // Author.............Cedric Nugteren
-// Last modified on...16-April-2012
+// Last modified on...10-October-2014
 
 #include <stdio.h>
 #include <stdlib.h>
 
-// This is 'example7', demonstrating variable length arrays (C99 VLAs)
+// This is 'example07', demonstrating variable length arrays (C99 VLAs)
 int main(void) {
 	int a,b,c;
 	int dim_1A = 50;
@@ -37,7 +37,8 @@ int main(void) {
 	}
 	
 	// Perform the computation
-	#pragma species kernel 0:dim_1A-1,0:dim_1B-1,0:29|element ^ 0:dim_1A-1,0:dim_1B-1,0:29|element -> 0:dim_1A-1,0:dim_1B-1,0:29|element
+	#pragma scop
+	#pragma species kernel in1[0:dim_1A-1,0:dim_1B-1,0:29]|element ^ in2[0:dim_1A-1,0:dim_1B-1,0:29]|element -> out[0:dim_1A-1,0:dim_1B-1,0:29]|element
 	for(a=0;a<dim_1A;a++) {
 		for(b=0;b<dim_1B;b++) {
 			for(c=0;c<30;c++) {
@@ -46,6 +47,7 @@ int main(void) {
 		}
 	}
 	#pragma species endkernel example7
+	#pragma endscop
 	
 	// Clean-up and exit the function
 	fflush(stdout);

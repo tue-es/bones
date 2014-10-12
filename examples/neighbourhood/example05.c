@@ -10,7 +10,7 @@
 // == File information
 // Filename...........neighbourhood/example05.c
 // Author.............Cedric Nugteren
-// Last modified on...07-May-2013
+// Last modified on...10-October-2014
 //
 
 #include <stdio.h>
@@ -31,11 +31,13 @@ int main(void) {
 	}
 	
 	// Perform the computation
+	#pragma scop
 	#pragma species kernel A[2:N]|neighbourhood(0:1) -> B[2:N-1]|element
 	for (i=2; i<N; i++) {
 		B[i] = A[i] + A[i+1];
 	}
 	#pragma species endkernel example05
+	#pragma endscop
 	
 	// Clean-up and exit the function
 	fflush(stdout);

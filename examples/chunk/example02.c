@@ -8,16 +8,16 @@
 // Web address........http://parse.ele.tue.nl/bones/
 //
 // == File information
-// Filename...........chunk/example2.c
+// Filename...........chunk/example02.c
 // Author.............Cedric Nugteren
-// Last modified on...16-April-2012
+// Last modified on...10-October-2014
 //
 
 #include <stdio.h>
 #define SIZE 2048
 #define HALFSIZE (SIZE/2)
 
-// This is 'example2', demonstrating a chunk-example without an inner-loop, everything is unrolled manually
+// This is 'example02', demonstrating a chunk-example without an inner-loop, everything is unrolled manually
 int main(void) {
 	int i;
 	
@@ -31,11 +31,13 @@ int main(void) {
 	}
 	
 	// Perform the computation
-	#pragma species kernel 0:SIZE-1|chunk(0:1) -> 0:HALFSIZE-1|element
+	#pragma scop
+	#pragma species kernel A[0:SIZE-1]|chunk(0:1) -> B[0:HALFSIZE-1]|element
 	for(i=0;i<HALFSIZE;i++) {
 		B[i] = A[i*2] + A[i*2+1];
 	}
 	#pragma species endkernel example2
+	#pragma endscop
 	
 	// Clean-up and exit the function
 	fflush(stdout);

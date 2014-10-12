@@ -8,14 +8,14 @@
 // Web address........http://parse.ele.tue.nl/bones/
 //
 // == File information
-// Filename...........shared/example5.c
+// Filename...........shared/example05.c
 // Author.............Cedric Nugteren
-// Last modified on...07-May-2012
+// Last modified on...10-October-2014
 //
 
 #include <stdio.h>
 
-// This is 'example5', demonstrating an inner-loop only classification of a reduction to scalar
+// This is 'example05', demonstrating an inner-loop only classification of a reduction to scalar
 int main(void) {
 	int a,b,c;
 	
@@ -32,14 +32,16 @@ int main(void) {
 	}
 	
 	// Perform the computation
+	#pragma scop
 	for(a=0;a<16;a++) {
-		#pragma species kernel a:a,0:a|element -> 0:0|shared
+		#pragma species kernel in[a:a,0:a]|element -> out[0:0]|shared
 		for(b=0;b<=a;b++) {
 			out[0] = out[0] - in[a][b]*in[a][b];
 		}
 		#pragma species endkernel example5
 		out[0] = 1.002;
 	}
+	#pragma endscop
 	
 	// Clean-up and exit the function
 	fflush(stdout);

@@ -8,16 +8,16 @@
 // Web address........http://parse.ele.tue.nl/bones/
 //
 // == File information
-// Filename...........shared/example3.c
+// Filename...........shared/example03.c
 // Author.............Cedric Nugteren
-// Last modified on...16-April-2012
+// Last modified on...10-October-2014
 //
 
 #include <stdio.h>
 #include <stdlib.h>
 #define SIZE 1024
 
-// This is 'example3', demonstrating a reduction to a 2D array
+// This is 'example03', demonstrating a reduction to a 2D array
 int main(void) {
 	int i,p,q;
 	int index1,index2;
@@ -39,13 +39,15 @@ int main(void) {
 	}
 	
 	// Perform the computation
-	#pragma species kernel 0:SIZE-1|element -> 0:19,0:9|shared
+	#pragma scop
+	#pragma species kernel in[0:SIZE-1]|element -> B[0:19,0:9]|shared
 	for(i=0;i<SIZE;i++) {
 		index1 = in[i]%20;
 		index2 = in[i]%10;
 		B[index1][index2] = B[index1][index2] + 1;
 	}
 	#pragma species endkernel example3
+	#pragma endscop
 	
 	// Clean-up and exit the function
 	free(in);

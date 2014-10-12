@@ -8,14 +8,14 @@
 // Web address........http://parse.ele.tue.nl/bones/
 //
 // == File information
-// Filename...........element/example4.c
+// Filename...........element/example04.c
 // Author.............Cedric Nugteren
-// Last modified on...16-April-2012
+// Last modified on...10-October-2014
 //
 
 #include <stdio.h>
 
-// This is 'example4', demonstrating two input arrays and an inner-loop as the computational body
+// This is 'example04', demonstrating two input arrays and an inner-loop as the computational body
 int main(void) {
 	int i,l;
 	float factor = 0;
@@ -32,7 +32,8 @@ int main(void) {
 	}
 	
 	// Perform the computation
-	#pragma species kernel 0:699|element ^ 0:699|element -> 0:699|element
+	#pragma scop
+	#pragma species kernel A[0:699]|element ^ B[0:699]|element -> C[0:699]|element
 	for(i=0;i<700;i++) {
 		factor = 0.5;
 		for (l=0;l<3;l++) {
@@ -41,6 +42,7 @@ int main(void) {
 		C[i] = factor*A[i] + factor*B[i];
 	}
 	#pragma species endkernel example4
+	#pragma endscop
 	
 	// Clean-up and exit the function
 	fflush(stdout);

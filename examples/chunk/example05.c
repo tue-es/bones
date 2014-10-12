@@ -8,14 +8,14 @@
 // Web address........http://parse.ele.tue.nl/bones/
 //
 // == File information
-// Filename...........chunk/example5.c
+// Filename...........chunk/example05.c
 // Author.............Cedric Nugteren
-// Last modified on...16-April-2012
+// Last modified on...10-October-2014
 //
 
 #include <stdio.h>
 
-// This is 'example5', demonstrating a chunk to element example without a temporary variable but directly writing to the output
+// This is 'example05', demonstrating a chunk to element example without a temporary variable but directly writing to the output
 int main(void) {
 	int i,j;
 	int i2,j2;
@@ -32,7 +32,8 @@ int main(void) {
 	}
 	
 	// Perform the computation
-	#pragma species kernel 0:559,0:31|chunk(0:9,0:1) -> 0:55,0:15|element
+	#pragma scop
+	#pragma species kernel A[0:559,0:31]|chunk(0:9,0:1) -> B[0:55,0:15]|element
 	for(i=0;i<56;i++) {
 		for(j=0;j<16;j++) {
 			B[i][j] = 0;
@@ -44,6 +45,7 @@ int main(void) {
 		}
 	}
 	#pragma species endkernel example5
+	#pragma endscop
 	
 	// Clean-up and exit the function
 	fflush(stdout);

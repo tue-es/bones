@@ -8,9 +8,9 @@
 // Web address........http://parse.ele.tue.nl/bones/
 //
 // == File information
-// Filename...........chunk/example3.c
+// Filename...........chunk/example03.c
 // Author.............Cedric Nugteren
-// Last modified on...16-April-2012
+// Last modified on...10-October-2014
 //
 
 #include <stdio.h>
@@ -18,7 +18,7 @@
 #define TILE 64
 #define SIZE (BASE*TILE)
 
-// This is 'example3', demonstrating a chunked input and a chunked output, and showing the importance of ordering (array referenced first should be placed first)
+// This is 'example03', demonstrating a chunked input and a chunked output, and showing the importance of ordering (array referenced first should be placed first)
 int main(void) {
 	int i;
 	int t = 0;
@@ -39,7 +39,8 @@ int main(void) {
 	}
 	
 	// Perform the computation
-	#pragma species kernel 0:BASE-1|element ^ 0:SIZE-1|chunk(0:TILE-1) -> 0:SIZE-1|chunk(0:TILE-1) ^ 0:SIZE-1|chunk(0:TILE-1)
+	#pragma scop
+	#pragma species kernel A[0:BASE-1]|element ^ B[0:SIZE-1]|chunk(0:TILE-1) -> out1[0:SIZE-1]|chunk(0:TILE-1) ^ out2[0:SIZE-1]|chunk(0:TILE-1)
 	for(i=0;i<BASE;i++) {
 		result = A[i];
 		for(t=0;t<TILE;t++) {
@@ -51,6 +52,7 @@ int main(void) {
 		}
 	}
 	#pragma species endkernel example3
+	#pragma endscop
 	
 	// Clean-up and exit the function
 	fflush(stdout);

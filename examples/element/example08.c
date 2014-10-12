@@ -8,14 +8,14 @@
 // Web address........http://parse.ele.tue.nl/bones/
 //
 // == File information
-// Filename...........element/example8.c
+// Filename...........element/example08.c
 // Author.............Cedric Nugteren
-// Last modified on...16-April-2012
+// Last modified on...10-October-2014
 //
 
 #include <stdio.h>
 
-// This is 'example8', demonstrating a reading and writing from the same array
+// This is 'example08', demonstrating a reading and writing from the same array
 int main(void) {
 	int i,j;
 	
@@ -30,13 +30,15 @@ int main(void) {
 	}
 	
 	// Perform the computation
-	#pragma species kernel 0:99,0:15|element -> 0:99,0:15|element
+	#pragma scop
+	#pragma species kernel A[0:99,0:15]|element -> A[0:99,0:15]|element
 	for(i=0;i<100;i++) {
 		for(j=0;j<16;j++) {
 			A[i][j] = 2*A[i][j];
 		}
 	}
 	#pragma species endkernel example8
+	#pragma endscop
 	
 	// Clean-up and exit the function
 	fflush(stdout);

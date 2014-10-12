@@ -8,14 +8,14 @@
 // Web address........http://parse.ele.tue.nl/bones/
 //
 // == File information
-// Filename...........element/example1.c
+// Filename...........element/example01.c
 // Author.............Cedric Nugteren
-// Last modified on...16-April-2012
+// Last modified on...10-October-2014
 //
 
 #include <stdio.h>
 
-// This is 'example1', a very basic element to element example using 2D arrays.
+// This is 'example01', a very basic element to element example using 2D arrays.
 int main(void) {
 	int i,j;
 	
@@ -31,13 +31,15 @@ int main(void) {
 	}
 	
 	// Perform the computation
-	#pragma species kernel 0:99,0:15|element -> 0:99,0:15|element
+	#pragma scop
+	#pragma species kernel A[0:99,0:15]|element -> B[0:99,0:15]|element
 	for(i=0;i<100;i++) {
 		for(j=0;j<16;j++) {
 			B[i][j] = 2*A[i][j];
 		}
 	}
 	#pragma species endkernel example1
+	#pragma endscop
 	
 	// Clean-up and exit the function
 	fflush(stdout);

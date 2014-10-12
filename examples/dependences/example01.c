@@ -10,7 +10,7 @@
 // == File information
 // Filename...........dependences/example01.c
 // Author.............Cedric Nugteren
-// Last modified on...07-May-2013
+// Last modified on...11-October-2014
 //
 
 #include <stdio.h>
@@ -29,11 +29,13 @@ int main(void) {
 	}
 	
 	// Perform the computation
+	#pragma scop
 	#pragma species kernel A[1:8*N-7]|element -> A[6:2*N+4]|element
 	for (i=0; i<N; i++) { // No dependence
 		A[2*i+6] = A[8*i+1];
 	}
 	#pragma species endkernel example01
+	#pragma endscop
 	
 	// Clean-up and exit the function
 	fflush(stdout);
