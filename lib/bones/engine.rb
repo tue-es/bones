@@ -240,7 +240,7 @@ module Bones
 		def write_output
 			
 			# Create a new directory for the output
-			directory = @options[:application].split('.').first+'_'+@options[:target]
+			directory = @options[:application].rpartition('.').first+'_'+@options[:target]
 			Dir.mkdir(directory,0744) unless File.directory?(directory)
 			
 			parser = C::Parser.new

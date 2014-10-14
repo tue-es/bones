@@ -149,7 +149,7 @@ module Adarwin
 			
 			# Populate the species file
 			# TODO: The filename is fixed, make this an optional argument
-			File.open(File.join(@options[:application].split('.').first+'_species'+'.c'),'w') do |target|
+			File.open(File.join(@options[:application].rpartition('.').first+'_species'+'.c'),'w') do |target|
 				target.puts @result[:species_code]
 			end
 		end
